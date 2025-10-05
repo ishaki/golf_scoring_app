@@ -1,0 +1,332 @@
+import { create } from 'zustand';
+import {
+  saveCurrentGame,
+  loadCurrentGame,
+  clearCurrentGame,
+  saveGameToHistory,
+  loadGameHistory,
+} from '../utils/supabaseStorage';
+import { generateDefaultCourseConfig } from '../utils/courseConfig';
+
+/**
+ * Generate UUID v4
+ * @returns {string} UUID identifier
+ */
+function generateId() {
+  // Generate a proper UUID v4
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
+/**
+ * Initialize empty holes array
+ * @param {number[]} pars - Par values for each hole
+ * @param {number[]} strokeIndexes - Stroke index for each hole
+ * @returns {import('../types').Hole[]} Array of 18 holes
+ */
+function initializeHoles(pars, strokeIndexes) {
+  return Array.from({ length: 18 }, (_, i) => ({
+    number: i + 1,
+    par: pars[i],
+    strokeIndex: strokeIndexes[i],
+    scores: {},
+    netScores: {},
+    points: {},
+  }));
+}
+
+/**
+ * Create initial game state
+ * @param {Array} players - Player configuration
+ * @param {Object} courseConfig - Course configuration
+ * @returns {import('../types').Game} New game object
+ */
+function createInitialGame(players, courseConfig) {
+  const { pars, strokeIndexes, courseName } = courseConfig;
+
+  return {
+    id: generateId(),
+    createdAt: new Date().toISOString(),
+    players,
+    holes: initializeHoles(pars, strokeIndexes),
+    currentHole: 1,
+    isComplete: false,
+    totals: players.reduce((acc, player) => {
+      acc[player.id] = 0;
+      return acc;
+    }, {}),
+    courseName: courseName || 'Standard Par 72', // Store course name
+  };
+}
+
+/**
+ * Zustand game store
+ */
+export const useGameStore = create((set, get) => ({
+  // State
+  game: null,
+  history: [],
+  settings: null,
+
+  // Actions
+
+  /**
+   * Create new game
+   * @param {Array} players - Array of player objects
+   * @param {Object} courseConfig - Course configuration (optional)
+   */
+  createGame: async (players, courseConfig = null) => {
+    console.log('[GameStore] createGame: Creating new game with', players.length, 'players');
+    const config = courseConfig || generateDefaultCourseConfig();
+    const newGame = createInitialGame(players, config);
+
+    console.log('[GameStore] createGame: New game created:', {
+      id: newGame.id,
+      courseName: newGame.courseName,
+      players: newGame.players.length,
+      currentHole: newGame.currentHole
+    });
+
+    set({ game: newGame });
+
+    console.log('[GameStore] createGame: Saving to Supabase...');
+    try {
+      const result = await saveCurrentGame(newGame);
+      console.log('[GameStore] createGame: Initial save result:', result);
+      if (!result) {
+        console.error('[GameStore] createGame: ⚠️ Initial save failed!');
+      }
+    } catch (error) {
+      console.error('[GameStore] createGame: Initial save error:', error);
+    }
+  },
+
+  /**
+   * Update score for a player on specific hole
+   * @param {number} holeNumber - Hole number (1-18)
+   * @param {string} playerId - Player ID
+   * @param {number} score - Golf score
+   */
+  updateScore: async (holeNumber, playerId, score) => {
+    const { game } = get();
+    if (!game) {
+      console.error('[GameStore] updateScore: No game found');
+      return;
+    }
+
+    console.log(`[GameStore] updateScore: Hole ${holeNumber}, Player ${playerId}, Score ${score}`);
+
+    const updatedGame = { ...game };
+    const holeIndex = holeNumber - 1;
+
+    if (holeIndex < 0 || holeIndex >= 18) {
+      console.error('[GameStore] updateScore: Invalid hole number', holeNumber);
+      return;
+    }
+
+    // Update score
+    updatedGame.holes[holeIndex] = {
+      ...updatedGame.holes[holeIndex],
+      scores: {
+        ...updatedGame.holes[holeIndex].scores,
+        [playerId]: score,
+      },
+    };
+
+    console.log('[GameStore] updateScore: Updating state...');
+    set({ game: updatedGame });
+
+    console.log('[GameStore] updateScore: Saving to Supabase...');
+    try {
+      const result = await saveCurrentGame(updatedGame);
+      console.log('[GameStore] updateScore: Save result:', result);
+    } catch (error) {
+      console.error('[GameStore] updateScore: Save failed:', error);
+    }
+  },
+
+  /**
+   * Navigate to next hole
+   */
+  nextHole: async () => {
+    const { game } = get();
+    if (!game) return;
+
+    const nextHoleNumber = Math.min(game.currentHole + 1, 18);
+    const updatedGame = {
+      ...game,
+      currentHole: nextHoleNumber,
+    };
+
+    // Check if game is complete
+    if (nextHoleNumber === 18) {
+      const hole18 = updatedGame.holes[17];
+      const allScoresEntered = Object.keys(hole18.scores).length === game.players.length;
+
+      if (allScoresEntered) {
+        updatedGame.isComplete = true;
+      }
+    }
+
+    set({ game: updatedGame });
+    await saveCurrentGame(updatedGame);
+  },
+
+  /**
+   * Navigate to previous hole
+   */
+  previousHole: async () => {
+    const { game } = get();
+    if (!game) return;
+
+    const prevHoleNumber = Math.max(game.currentHole - 1, 1);
+    const updatedGame = {
+      ...game,
+      currentHole: prevHoleNumber,
+    };
+
+    set({ game: updatedGame });
+    await saveCurrentGame(updatedGame);
+  },
+
+  /**
+   * Jump to specific hole
+   * @param {number} holeNumber - Hole number (1-18)
+   */
+  goToHole: async (holeNumber) => {
+    const { game } = get();
+    if (!game) return;
+
+    if (holeNumber < 1 || holeNumber > 18) return;
+
+    const updatedGame = {
+      ...game,
+      currentHole: holeNumber,
+    };
+
+    set({ game: updatedGame });
+    await saveCurrentGame(updatedGame);
+  },
+
+  /**
+   * Update net scores and points for a hole
+   * @param {number} holeNumber - Hole number (1-18)
+   * @param {Object} netScores - Net scores object {playerId: netScore}
+   * @param {Object} points - Points object {playerId: points}
+   */
+  updateHoleCalculations: async (holeNumber, netScores, points) => {
+    const { game } = get();
+    if (!game) return;
+
+    const holeIndex = holeNumber - 1;
+    if (holeIndex < 0 || holeIndex >= 18) return;
+
+    const updatedGame = { ...game };
+    updatedGame.holes[holeIndex] = {
+      ...updatedGame.holes[holeIndex],
+      netScores,
+      points,
+    };
+
+    // Recalculate totals
+    const newTotals = { ...game.totals };
+    game.players.forEach(player => {
+      newTotals[player.id] = updatedGame.holes.reduce((sum, hole) => {
+        return sum + (hole.points[player.id] || 0);
+      }, 0);
+    });
+
+    updatedGame.totals = newTotals;
+
+    set({ game: updatedGame });
+    await saveCurrentGame(updatedGame);
+  },
+
+  /**
+   * Save current game and clear it
+   */
+  saveAndClearGame: async () => {
+    const { game } = get();
+    if (!game) return;
+
+    if (game.isComplete) {
+      await saveGameToHistory(game);
+    }
+
+    await clearCurrentGame();
+    set({ game: null });
+  },
+
+  /**
+   * Load game from Supabase
+   * @param {string} gameId - Game ID (optional, loads current game if not provided)
+   */
+  loadGame: async (gameId = null) => {
+    console.log('[GameStore] loadGame: Called with gameId:', gameId);
+
+    if (gameId) {
+      // Load historical game (future implementation)
+      console.log('[GameStore] loadGame: Loading by ID not yet implemented');
+      return;
+    }
+
+    console.log('[GameStore] loadGame: Loading current game from Supabase...');
+    try {
+      const currentGame = await loadCurrentGame();
+      console.log('[GameStore] loadGame: Result:', currentGame ? 'Found game' : 'No game found');
+
+      if (currentGame) {
+        console.log('[GameStore] loadGame: Game details:', {
+          id: currentGame.id,
+          courseName: currentGame.courseName,
+          currentHole: currentGame.currentHole,
+          isComplete: currentGame.isComplete,
+          players: currentGame.players?.length
+        });
+        set({ game: currentGame });
+      } else {
+        console.log('[GameStore] loadGame: No active game in database');
+        set({ game: null });
+      }
+    } catch (error) {
+      console.error('[GameStore] loadGame: Error loading game:', error);
+      set({ game: null });
+    }
+  },
+
+  /**
+   * Clear current game without saving
+   */
+  clearGame: async () => {
+    await clearCurrentGame();
+    set({ game: null });
+  },
+
+  /**
+   * Load game history
+   */
+  loadHistory: async () => {
+    const history = await loadGameHistory();
+    set({ history });
+  },
+
+  /**
+   * Update game state directly (for complex updates)
+   * @param {Partial<import('../types').Game>} updates - Partial game updates
+   */
+  updateGame: async (updates) => {
+    const { game } = get();
+    if (!game) return;
+
+    const updatedGame = {
+      ...game,
+      ...updates,
+    };
+
+    set({ game: updatedGame });
+    await saveCurrentGame(updatedGame);
+  },
+}));
