@@ -101,7 +101,8 @@ export default function Home() {
               How to Play
             </summary>
             <div className="mt-4 text-sm text-gray-600 space-y-2">
-              <p><strong>Birdie or Better:</strong> +2 points from worse players</p>
+              <p><strong>Eagle or Better:</strong> +4 points from worse players</p>
+              <p><strong>Birdie:</strong> +2 points from worse players</p>
               <p><strong>Par:</strong> +1 from worse, -2 from birdie</p>
               <p><strong>Bogey:</strong> +1 from worse, -1 from par, -2 from birdie</p>
               <p><strong>Voor:</strong> Handicap strokes on hardest holes</p>
