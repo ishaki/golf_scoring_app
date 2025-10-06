@@ -4,6 +4,7 @@ import { useGameStore } from '../store/gameStore';
 import Leaderboard from '../components/dashboard/Leaderboard';
 import HoleBreakdown from '../components/dashboard/HoleBreakdown';
 import TransactionMatrix from '../components/dashboard/TransactionMatrix';
+import VoorView from '../components/dashboard/VoorView';
 import GameSummary from '../components/dashboard/GameSummary';
 import ShareButton from '../components/dashboard/ShareButton';
 
@@ -54,6 +55,7 @@ export default function Dashboard() {
     { id: 'leaderboard', label: 'Leaderboard', icon: '🏆' },
     { id: 'breakdown', label: 'Hole Breakdown', icon: '📊' },
     { id: 'transactions', label: 'Transactions', icon: '💱' },
+    { id: 'voor', label: 'Voor', icon: '⚙️' },
     { id: 'summary', label: 'Summary', icon: '📋' },
   ];
 
@@ -100,6 +102,10 @@ export default function Dashboard() {
 
           {activeTab === 'transactions' && (
             <TransactionMatrix game={game} />
+          )}
+
+          {activeTab === 'voor' && (
+            <VoorView players={game.players} holes={game.holes} />
           )}
 
           {activeTab === 'summary' && (
