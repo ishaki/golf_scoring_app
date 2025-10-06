@@ -66,7 +66,7 @@ export default function PublicDashboard() {
   const tabs = [
     { id: 'leaderboard', label: 'Leaderboard', icon: '🏆' },
     { id: 'breakdown', label: 'Hole Breakdown', icon: '📊' },
-    { id: 'transactions', label: 'Transactions', icon: '💱' },
+    // { id: 'transactions', label: 'Transactions', icon: '💱' }, // Hidden temporarily
     { id: 'voor', label: 'Voor', icon: '⚙️' },
     { id: 'summary', label: 'Summary', icon: '📋' },
   ];
