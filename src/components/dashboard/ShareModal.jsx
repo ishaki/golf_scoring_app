@@ -56,7 +56,9 @@ export default function ShareModal({ game, onClose }) {
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">Share Your Game Dashboard</h2>
+          <h2 className="text-xl font-bold text-gray-900">
+            {game.isComplete ? 'Share Your Game Dashboard' : 'Share Live Game 🔴'}
+          </h2>
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600 transition-colors text-2xl"
@@ -112,18 +114,27 @@ export default function ShareModal({ game, onClose }) {
               </div>
 
               {/* Privacy Notice */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className={`${game.isComplete ? 'bg-blue-50 border-blue-200' : 'bg-orange-50 border-orange-200'} border rounded-lg p-4`}>
                 <div className="flex items-start gap-3">
-                  <span className="text-blue-500 text-xl">ℹ️</span>
-                  <div className="text-sm text-blue-800">
-                    <p className="font-semibold mb-1">This link shows:</p>
+                  <span className={`${game.isComplete ? 'text-blue-500' : 'text-orange-500'} text-xl`}>
+                    {game.isComplete ? 'ℹ️' : '🔴'}
+                  </span>
+                  <div className={`text-sm ${game.isComplete ? 'text-blue-800' : 'text-orange-800'}`}>
+                    <p className="font-semibold mb-1">
+                      {game.isComplete ? 'This link shows:' : 'Live game - viewers will see:'}
+                    </p>
                     <ul className="list-disc list-inside space-y-1">
-                      <li>Final scores and leaderboard</li>
+                      {!game.isComplete && <li>Real-time score updates</li>}
+                      <li>{game.isComplete ? 'Final scores' : 'Current scores'} and leaderboard</li>
                       <li>Hole-by-hole breakdown</li>
                       <li>Transaction matrix</li>
                       <li>Game summary</li>
                     </ul>
-                    <p className="mt-2 text-blue-600">No login required for viewers.</p>
+                    <p className={`mt-2 ${game.isComplete ? 'text-blue-600' : 'text-orange-600'}`}>
+                      {game.isComplete
+                        ? 'No login required for viewers.'
+                        : '⚡ Updates automatically as you play. No login required.'}
+                    </p>
                   </div>
                 </div>
               </div>

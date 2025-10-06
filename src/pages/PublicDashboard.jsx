@@ -18,6 +18,18 @@ export default function PublicDashboard() {
     loadPublicGame();
   }, [token]);
 
+  // Auto-refresh for live games (every 10 seconds)
+  useEffect(() => {
+    if (!game || game.is_complete) return;
+
+    const interval = setInterval(() => {
+      console.log('[PublicDashboard] Auto-refreshing live game...');
+      loadPublicGame();
+    }, 10000); // Refresh every 10 seconds
+
+    return () => clearInterval(interval);
+  }, [game?.is_complete]);
+
   const loadPublicGame = async () => {
     console.log('[PublicDashboard] Loading public game with token:', token);
     setIsLoading(true);
@@ -96,19 +108,33 @@ export default function PublicDashboard() {
     <div className="min-h-screen bg-gray-50 p-4 pb-20">
       <div className="max-w-7xl mx-auto">
         {/* Public View Banner */}
-        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r-lg">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <span className="text-2xl">👁️</span>
+        <div className={`${
+          game.is_complete
+            ? 'bg-yellow-50 border-yellow-400'
+            : 'bg-orange-50 border-orange-500'
+        } border-l-4 p-4 mb-6 rounded-r-lg`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <span className="text-2xl">{game.is_complete ? '👁️' : '🔴'}</span>
+              </div>
+              <div className="ml-3">
+                <p className={`text-sm font-semibold ${game.is_complete ? 'text-yellow-800' : 'text-orange-800'}`}>
+                  {game.is_complete ? 'Public View - Read Only' : 'LIVE GAME 🔴'}
+                </p>
+                <p className={`text-sm ${game.is_complete ? 'text-yellow-700' : 'text-orange-700'}`}>
+                  {game.is_complete
+                    ? 'You are viewing a shared game dashboard'
+                    : 'Updates automatically every 10 seconds'}
+                </p>
+              </div>
             </div>
-            <div className="ml-3">
-              <p className="text-sm font-semibold text-yellow-800">
-                Public View - Read Only
-              </p>
-              <p className="text-sm text-yellow-700">
-                You are viewing a shared game dashboard
-              </p>
-            </div>
+            {!game.is_complete && (
+              <div className="flex items-center gap-2">
+                <div className="animate-pulse bg-red-500 rounded-full h-3 w-3"></div>
+                <span className="text-sm font-semibold text-orange-800">Live</span>
+              </div>
+            )}
           </div>
         </div>
 

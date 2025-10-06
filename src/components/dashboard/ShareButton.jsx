@@ -4,11 +4,7 @@ import ShareModal from './ShareModal';
 export default function ShareButton({ game }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Only show share button for completed games
-  if (!game.isComplete) {
-    return null;
-  }
-
+  // Show share button for both in-progress and completed games
   return (
     <>
       <button
@@ -22,12 +18,12 @@ export default function ShareButton({ game }) {
         {game.isPublic ? (
           <>
             <span className="mr-2">✓</span>
-            Dashboard Shared
+            {game.isComplete ? 'Dashboard Shared' : 'Live Game Shared'}
           </>
         ) : (
           <>
             <span className="mr-2">🔗</span>
-            Share Dashboard
+            {game.isComplete ? 'Share Dashboard' : 'Share Live Game'}
           </>
         )}
       </button>
