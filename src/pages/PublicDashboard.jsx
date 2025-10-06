@@ -18,14 +18,14 @@ export default function PublicDashboard() {
     loadPublicGame();
   }, [token]);
 
-  // Auto-refresh for live games (every 10 seconds)
+  // Auto-refresh for live games (every 60 seconds)
   useEffect(() => {
     if (!game || game.is_complete) return;
 
     const interval = setInterval(() => {
       console.log('[PublicDashboard] Auto-refreshing live game...');
       loadPublicGame();
-    }, 10000); // Refresh every 10 seconds
+    }, 60000); // Refresh every 60 seconds
 
     return () => clearInterval(interval);
   }, [game?.is_complete]);
@@ -125,7 +125,7 @@ export default function PublicDashboard() {
                 <p className={`text-sm ${game.is_complete ? 'text-yellow-700' : 'text-orange-700'}`}>
                   {game.is_complete
                     ? 'You are viewing a shared game dashboard'
-                    : 'Updates automatically every 10 seconds'}
+                    : 'Updates automatically every 60 seconds'}
                 </p>
               </div>
             </div>
