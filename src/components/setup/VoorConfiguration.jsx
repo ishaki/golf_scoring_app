@@ -77,14 +77,29 @@ export default function VoorConfiguration({ playerNames, courseConfig, onNext, o
     }
   };
 
-  // Calculate stroke holes for a player based on total strokes received
+  // Calculate stroke holes for a player using UNION logic (same as calculateAllStrokeHoles)
+  // Voor is applied hole-by-hole: if ANY giver gives a stroke on a hole, receiver gets it
   const getStrokeHolesForPlayer = (playerIndex) => {
     if (!courseConfig?.strokeIndexes) return [];
 
-    const totalStrokesReceived = getTotalStrokesReceived(playerIndex);
-    if (totalStrokesReceived === 0) return [];
+    const strokeHolesSet = new Set();
 
-    return getStrokeHoles(totalStrokesReceived, courseConfig.strokeIndexes);
+    // Check all givers
+    playerNames.forEach((giverName, giverIndex) => {
+      if (giverIndex === playerIndex) return; // Skip self
+
+      const strokesGiven = getVoorValue(giverIndex, playerIndex);
+      if (strokesGiven > 0) {
+        // Get holes where this giver gives strokes
+        const giverStrokeHoles = getStrokeHoles(strokesGiven, courseConfig.strokeIndexes);
+
+        // Add to receiver's stroke holes (union of all givers)
+        giverStrokeHoles.forEach(hole => strokeHolesSet.add(hole));
+      }
+    });
+
+    // Convert set to sorted array
+    return Array.from(strokeHolesSet).sort((a, b) => a - b);
   };
 
   const getTotalStrokesGiven = (playerIndex) => {
