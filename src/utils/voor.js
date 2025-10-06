@@ -6,6 +6,8 @@ import { getStrokeHoles } from './courseConfig';
 
 /**
  * Calculate which holes each player receives strokes on
+ * Voor is applied hole-by-hole: if ANY opponent gives a stroke on a hole, player receives it
+ * NOT cumulative: we take the UNION of stroke holes from all givers, not the sum
  * @param {import('../types').Player[]} players - Array of players
  * @param {number[]} strokeIndexes - Stroke index array for the course
  * @returns {Object.<string, number[]>} Map of playerId to array of hole numbers where they get strokes
@@ -13,13 +15,26 @@ import { getStrokeHoles } from './courseConfig';
 export function calculateAllStrokeHoles(players, strokeIndexes) {
   const strokeHolesMap = {};
 
-  // First, calculate how many strokes each player receives
-  const voorReceived = calculateVoorReceived(players);
+  // For each player (receiver)
+  players.forEach(receiver => {
+    const strokeHolesSet = new Set();
 
-  // Then calculate which holes they get strokes on
-  players.forEach(player => {
-    const strokes = voorReceived[player.id] || 0;
-    strokeHolesMap[player.id] = getStrokeHoles(strokes, strokeIndexes);
+    // Check all opponents (givers)
+    players.forEach(giver => {
+      if (giver.id === receiver.id) return; // Skip self
+
+      const strokesGiven = giver.voorGiven?.[receiver.id] || 0;
+      if (strokesGiven > 0) {
+        // Get holes where this giver gives strokes to receiver
+        const giverStrokeHoles = getStrokeHoles(strokesGiven, strokeIndexes);
+
+        // Add to receiver's stroke holes (union of all givers' stroke holes)
+        giverStrokeHoles.forEach(hole => strokeHolesSet.add(hole));
+      }
+    });
+
+    // Convert set to sorted array
+    strokeHolesMap[receiver.id] = Array.from(strokeHolesSet).sort((a, b) => a - b);
   });
 
   return strokeHolesMap;
