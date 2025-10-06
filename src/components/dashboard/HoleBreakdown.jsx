@@ -99,11 +99,15 @@ export default function HoleBreakdown({ players, holes }) {
                     ? getPointsColor(hole.points?.[player.id] || 0)
                     : getScoreColor(hole.scores?.[player.id], hole.par);
 
+                  // Check if player receives voor stroke on this hole
+                  const hasStroke = player.strokeHoles && player.strokeHoles.includes(hole.number);
+
                   return (
                     <td key={hole.number} className="px-3 py-3 text-center">
                       <div className={`inline-block px-2 py-1 rounded font-semibold min-w-[40px] ${colorClass}`}>
                         {viewMode === 'points' && value > 0 ? '+' : ''}
                         {value}
+                        {hasStroke && <sup className="text-[0.6em] ml-0.5 font-bold">V</sup>}
                       </div>
                     </td>
                   );
@@ -122,7 +126,7 @@ export default function HoleBreakdown({ players, holes }) {
 
       <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 text-xs text-gray-600">
         {viewMode === 'points' ? (
-          <div className="flex gap-4">
+          <div className="flex gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-green-100 border border-green-200 rounded"></div>
               <span>Positive points</span>
@@ -131,9 +135,13 @@ export default function HoleBreakdown({ players, holes }) {
               <div className="w-4 h-4 bg-red-100 border border-red-200 rounded"></div>
               <span>Negative points</span>
             </div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold">V</span>
+              <span>= Voor stroke received</span>
+            </div>
           </div>
         ) : (
-          <div className="flex gap-4">
+          <div className="flex gap-4 flex-wrap">
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-birdie-light border border-birdie rounded"></div>
               <span>Birdie or better</span>
@@ -149,6 +157,10 @@ export default function HoleBreakdown({ players, holes }) {
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-worse-light border border-worse rounded"></div>
               <span>Double+</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-bold">V</span>
+              <span>= Voor stroke received</span>
             </div>
           </div>
         )}
