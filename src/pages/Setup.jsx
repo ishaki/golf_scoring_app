@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '../store/gameStore';
+import { calculateAllStrokeHoles } from '../utils/voor';
 import PlayerSetup from '../components/setup/PlayerSetup';
 import VoorConfiguration from '../components/setup/VoorConfiguration';
 import CourseSetup from '../components/setup/CourseSetup';
@@ -40,11 +41,20 @@ export default function Setup() {
       id: `player-${index + 1}`,
       name,
       voorGiven: matrix[index] || {},
-      strokeHoles: [], // Will be calculated by the game store
+      strokeHoles: [], // Will be populated below
+    }));
+
+    // Calculate stroke holes for each player using the union logic
+    const strokeHolesMap = calculateAllStrokeHoles(players, courseConfig.strokeIndexes);
+
+    // Update players with their calculated stroke holes
+    const playersWithStrokeHoles = players.map(player => ({
+      ...player,
+      strokeHoles: strokeHolesMap[player.id] || [],
     }));
 
     // Create game
-    createGame(players, courseConfig);
+    createGame(playersWithStrokeHoles, courseConfig);
 
     // Navigate to game screen
     navigate('/game');
