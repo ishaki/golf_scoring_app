@@ -37,12 +37,26 @@ export default function Setup() {
 
   const handleStartGame = (matrix) => {
     // Create player objects with IDs and voor configuration
-    const players = playerNames.map((name, index) => ({
-      id: `player-${index + 1}`,
-      name,
-      voorGiven: matrix[index] || {},
-      strokeHoles: [], // Will be populated below
-    }));
+    // Matrix uses indices, need to convert to player IDs
+    const players = playerNames.map((name, index) => {
+      const playerId = `player-${index + 1}`;
+
+      // Convert matrix indices to player IDs
+      const voorGiven = {};
+      if (matrix[index]) {
+        Object.entries(matrix[index]).forEach(([receiverIndex, strokes]) => {
+          const receiverId = `player-${parseInt(receiverIndex) + 1}`;
+          voorGiven[receiverId] = strokes;
+        });
+      }
+
+      return {
+        id: playerId,
+        name,
+        voorGiven,
+        strokeHoles: [], // Will be populated below
+      };
+    });
 
     // Calculate stroke holes for each player using the union logic
     const strokeHolesMap = calculateAllStrokeHoles(players, courseConfig.strokeIndexes);
