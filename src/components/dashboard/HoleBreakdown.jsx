@@ -11,6 +11,17 @@ export default function HoleBreakdown({ players, holes }) {
     return calculateAllStrokeHoles(players, strokeIndexes);
   }, [players, holes]);
 
+  // Calculate total voor received for each player
+  const getTotalVoorReceived = (player) => {
+    let totalStrokes = 0;
+    players.forEach(giver => {
+      if (giver.id === player.id) return;
+      const strokes = giver.voorGiven?.[player.id] || 0;
+      totalStrokes += strokes;
+    });
+    return totalStrokes;
+  };
+
   const getPointsColor = (points) => {
     if (points > 0) return 'bg-green-100 text-green-800';
     if (points < 0) return 'bg-red-100 text-red-800';
@@ -98,6 +109,11 @@ export default function HoleBreakdown({ players, holes }) {
               >
                 <td className="sticky left-0 bg-inherit px-4 py-3 font-semibold text-gray-800 z-10">
                   {player.name}
+                  {getTotalVoorReceived(player) > 0 && (
+                    <span className="ml-2 text-sm font-normal text-blue-600">
+                      (v:{getTotalVoorReceived(player)})
+                    </span>
+                  )}
                 </td>
                 {holes.map((hole) => {
                   const value = viewMode === 'points'
