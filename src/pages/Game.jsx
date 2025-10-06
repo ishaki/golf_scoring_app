@@ -4,7 +4,6 @@ import { useGameStore } from '../store/gameStore';
 import { calculateAllStrokeHoles } from '../utils/voor';
 import { calculateHolePoints } from '../utils/scoring';
 import HoleInput from '../components/scoring/HoleInput';
-import ScoreCard from '../components/scoring/ScoreCard';
 import Navigation from '../components/scoring/Navigation';
 
 export default function Game() {
@@ -141,13 +140,6 @@ export default function Game() {
           strokeHolesMap={strokeHolesMap}
           onScoreChange={handleScoreChange}
           scores={currentScores}
-        />
-
-        {/* Score Card */}
-        <ScoreCard
-          players={game.players}
-          hole={currentHole}
-          totals={game.totals}
         />
 
         {/* Navigation */}
