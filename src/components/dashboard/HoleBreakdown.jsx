@@ -80,7 +80,7 @@ export default function HoleBreakdown({ players, holes }) {
                 <th key={hole.number} className="px-3 py-3 text-center font-semibold text-gray-700 min-w-[50px]">
                   <div>{hole.number}</div>
                   <div className="text-xs font-normal text-gray-500">Par {hole.par}</div>
-                  <div className="text-xs font-normal text-gray-400">Index {hole.strokeIndex}</div>
+                  <div className="text-xs font-normal text-gray-400">Id {hole.strokeIndex}</div>
                 </th>
               ))}
               <th className="sticky right-0 bg-gray-100 px-4 py-3 text-center font-semibold text-gray-700 z-10 border-l-2 border-gray-300">
