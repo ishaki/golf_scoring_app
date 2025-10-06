@@ -143,7 +143,7 @@ export default function PlayerSetup({ onNext, initialPlayers = [] }) {
           onClick={handleNext}
           className="flex-1 px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-hover transition-colors"
         >
-          Next: Configure Voor
+          Next: Select Course
         </button>
       </div>
     </div>
