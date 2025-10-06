@@ -16,44 +16,54 @@ function getScoreDiff(score, par) {
 
 /**
  * Calculate points between two players based on their net scores
- * @param {number} playerScore - Player's net score
- * @param {number} opponentScore - Opponent's net score
+ * Points are awarded based on GROSS score vs par, not net score vs par
+ * @param {number} playerNetScore - Player's net score
+ * @param {number} opponentNetScore - Opponent's net score
+ * @param {number} playerGrossScore - Player's gross score
+ * @param {number} opponentGrossScore - Opponent's gross score
  * @param {number} par - Par for the hole
  * @param {boolean} playerHasStroke - Whether player gets stroke on this hole
  * @param {boolean} opponentHasStroke - Whether opponent gets stroke on this hole
  * @returns {number} Points (positive = player wins, negative = player loses, 0 = tie)
  */
 function calculatePointsBetweenPlayers(
-  playerScore,
-  opponentScore,
+  playerNetScore,
+  opponentNetScore,
+  playerGrossScore,
+  opponentGrossScore,
   par,
   playerHasStroke,
   opponentHasStroke
 ) {
-  const playerDiff = getScoreDiff(playerScore, par);
-  const opponentDiff = getScoreDiff(opponentScore, par);
+  // Calculate gross score differences from par (for point calculation)
+  const playerGrossDiff = getScoreDiff(playerGrossScore, par);
+  const opponentGrossDiff = getScoreDiff(opponentGrossScore, par);
 
   // Handle ties with voor (stroke receiver wins)
-  if (playerScore === opponentScore) {
+  if (playerNetScore === opponentNetScore) {
     if (playerHasStroke && !opponentHasStroke) {
       // Player gets stroke, treat as if player beat opponent
-      return calculatePointsForWin(playerDiff);
+      // Points based on player's GROSS score vs par
+      return calculatePointsForWin(playerGrossDiff);
     } else if (opponentHasStroke && !playerHasStroke) {
       // Opponent gets stroke, treat as if player lost
-      return -calculatePointsForWin(opponentDiff);
+      // Points based on opponent's GROSS score vs par
+      return -calculatePointsForWin(opponentGrossDiff);
     }
     // Both get stroke or neither gets stroke = true tie
     return 0;
   }
 
-  // Player did better
-  if (playerScore < opponentScore) {
-    return calculatePointsForWin(playerDiff);
+  // Player did better (lower net score wins)
+  if (playerNetScore < opponentNetScore) {
+    // Points based on player's GROSS score vs par
+    return calculatePointsForWin(playerGrossDiff);
   }
 
   // Player did worse
-  if (playerScore > opponentScore) {
-    return -calculatePointsForWin(opponentDiff);
+  if (playerNetScore > opponentNetScore) {
+    // Points based on opponent's GROSS score vs par
+    return -calculatePointsForWin(opponentGrossDiff);
   }
 
   return 0;
@@ -103,6 +113,7 @@ export function calculateHolePoints(hole, players, strokeHolesMap) {
   players.forEach(player => {
     let playerTotalPoints = 0;
     const playerNetScore = netScores[player.id];
+    const playerGrossScore = hole.scores[player.id];
     const playerHasStroke = playerGetsStrokeOnHole(player.id, hole.number, strokeHolesMap);
 
     // Compare against each opponent
@@ -110,11 +121,14 @@ export function calculateHolePoints(hole, players, strokeHolesMap) {
       if (player.id === opponent.id) return; // Skip self
 
       const opponentNetScore = netScores[opponent.id];
+      const opponentGrossScore = hole.scores[opponent.id];
       const opponentHasStroke = playerGetsStrokeOnHole(opponent.id, hole.number, strokeHolesMap);
 
       const pointsVsOpponent = calculatePointsBetweenPlayers(
         playerNetScore,
         opponentNetScore,
+        playerGrossScore,
+        opponentGrossScore,
         hole.par,
         playerHasStroke,
         opponentHasStroke
