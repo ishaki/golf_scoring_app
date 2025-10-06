@@ -102,9 +102,8 @@ export default function Home() {
             </summary>
             <div className="mt-4 text-sm text-gray-600 space-y-2">
               <p><strong>Eagle or Better:</strong> +4 points from worse players</p>
-              <p><strong>Birdie:</strong> +2 points from worse players</p>
-              <p><strong>Par:</strong> +1 from worse, -2 from birdie</p>
-              <p><strong>Bogey:</strong> +1 from worse, -1 from par, -2 from birdie, -4 from Eagle/better</p>
+              <p><strong>Birdie:</strong> +2 points from worse players, -4 from eagle</p>
+              <p><strong>Par/Bogey:</strong> +1 from worse, -2 from birdie, -4 from eagle</p>
               <p><strong>Voor:</strong> Handicap strokes on hardest holes</p>
             </div>
           </details>
