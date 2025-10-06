@@ -131,6 +131,7 @@ export default function SignInForm({ onSuccess, onSwitchToSignUp }) {
           </button>
 
           {/* Divider */}
+          {/* Temporarily hidden - Google OAuth not configured yet
           <div className="relative my-6">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t border-gray-300"></div>
@@ -140,7 +141,6 @@ export default function SignInForm({ onSuccess, onSwitchToSignUp }) {
             </div>
           </div>
 
-          {/* Google Sign In button */}
           <button
             type="button"
             onClick={handleGoogleSignIn}
@@ -155,6 +155,7 @@ export default function SignInForm({ onSuccess, onSwitchToSignUp }) {
             </svg>
             Sign in with Google
           </button>
+          */}
         </form>
       )}
 
