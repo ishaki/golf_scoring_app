@@ -39,7 +39,7 @@ export default function Home() {
     <div className="min-h-screen flex items-center justify-center px-4 bg-gray-50">
       <div className="max-w-md w-full text-center">
         <h1 className="text-4xl font-bold text-primary mb-2">Fighter Golf Score</h1>
-        <p className="text-gray-600 mb-8">F2F Golf Scoring System</p>
+        <p className="text-gray-600 mb-8">F2F Golf Scoring System - By Ishak Ahmad</p>
 
         <div className="space-y-4">
           {/* Resume Game Banner - Shows if there's an active game */}
