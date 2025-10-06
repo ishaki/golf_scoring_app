@@ -73,7 +73,7 @@ export default function Game() {
     };
 
     // Calculate points
-    const points = calculateHolePoints(updatedHole, game.players, strokeHolesMap);
+    const points = calculateHolePoints(updatedHole, game.players, strokeHolesMap, strokeIndexes);
 
     // Calculate net scores
     const netScores = {};

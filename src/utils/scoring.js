@@ -3,6 +3,7 @@
  */
 
 import { calculateAllNetScores, playerGetsStrokeOnHole } from './voor';
+import { getStrokeHoles } from './courseConfig';
 
 /**
  * Calculate score difference from par
@@ -15,6 +16,23 @@ function getScoreDiff(score, par) {
 }
 
 /**
+ * Check if giver gives a stroke to receiver on a specific hole
+ * @param {import('../types').Player} giver - Player who potentially gives stroke
+ * @param {import('../types').Player} receiver - Player who potentially receives stroke
+ * @param {number} holeNumber - Hole number
+ * @param {number[]} strokeIndexes - Stroke indexes for the course
+ * @returns {boolean} True if giver gives stroke to receiver on this hole
+ */
+function playerGivesStrokeToOpponent(giver, receiver, holeNumber, strokeIndexes) {
+  const strokesGiven = giver.voorGiven?.[receiver.id] || 0;
+  if (strokesGiven === 0) return false;
+
+  // Get holes where giver gives strokes to receiver
+  const strokeHoles = getStrokeHoles(strokesGiven, strokeIndexes);
+  return strokeHoles.includes(holeNumber);
+}
+
+/**
  * Calculate points between two players based on their net scores
  * Points are awarded based on GROSS score vs par, not net score vs par
  * @param {number} playerNetScore - Player's net score
@@ -22,8 +40,8 @@ function getScoreDiff(score, par) {
  * @param {number} playerGrossScore - Player's gross score
  * @param {number} opponentGrossScore - Opponent's gross score
  * @param {number} par - Par for the hole
- * @param {boolean} playerHasStroke - Whether player gets stroke on this hole
- * @param {boolean} opponentHasStroke - Whether opponent gets stroke on this hole
+ * @param {boolean} playerGivesStrokeToOpponent - Whether player gives stroke to opponent on this hole
+ * @param {boolean} opponentGivesStrokeToPlayer - Whether opponent gives stroke to player on this hole
  * @returns {number} Points (positive = player wins, negative = player loses, 0 = tie)
  */
 function calculatePointsBetweenPlayers(
@@ -32,8 +50,8 @@ function calculatePointsBetweenPlayers(
   playerGrossScore,
   opponentGrossScore,
   par,
-  playerHasStroke,
-  opponentHasStroke
+  playerGivesStrokeToOpponent,
+  opponentGivesStrokeToPlayer
 ) {
   // Calculate gross score differences from par (for point calculation)
   const playerGrossDiff = getScoreDiff(playerGrossScore, par);
@@ -41,16 +59,16 @@ function calculatePointsBetweenPlayers(
 
   // Handle ties with voor (stroke receiver wins)
   if (playerNetScore === opponentNetScore) {
-    if (playerHasStroke && !opponentHasStroke) {
-      // Player gets stroke, treat as if player beat opponent
+    if (opponentGivesStrokeToPlayer && !playerGivesStrokeToOpponent) {
+      // Player receives stroke from opponent, player wins tie
       // Points based on player's GROSS score vs par
       return calculatePointsForWin(playerGrossDiff);
-    } else if (opponentHasStroke && !playerHasStroke) {
-      // Opponent gets stroke, treat as if player lost
+    } else if (playerGivesStrokeToOpponent && !opponentGivesStrokeToPlayer) {
+      // Opponent receives stroke from player, opponent wins tie
       // Points based on opponent's GROSS score vs par
       return -calculatePointsForWin(opponentGrossDiff);
     }
-    // Both get stroke or neither gets stroke = true tie
+    // Both give strokes to each other (shouldn't happen) or neither gives = true tie
     return 0;
   }
 
@@ -93,9 +111,10 @@ function calculatePointsForWin(scoreDiff) {
  * @param {import('../types').Hole} hole - Hole object with scores
  * @param {import('../types').Player[]} players - Array of players
  * @param {Object.<string, number[]>} strokeHolesMap - Map of playerId to stroke holes
+ * @param {number[]} strokeIndexes - Stroke indexes for the course
  * @returns {Object.<string, number>} Map of playerId to points earned
  */
-export function calculateHolePoints(hole, players, strokeHolesMap) {
+export function calculateHolePoints(hole, players, strokeHolesMap, strokeIndexes) {
   const points = {};
   const netScores = calculateAllNetScores(hole, players, strokeHolesMap);
 
@@ -114,7 +133,6 @@ export function calculateHolePoints(hole, players, strokeHolesMap) {
     let playerTotalPoints = 0;
     const playerNetScore = netScores[player.id];
     const playerGrossScore = hole.scores[player.id];
-    const playerHasStroke = playerGetsStrokeOnHole(player.id, hole.number, strokeHolesMap);
 
     // Compare against each opponent
     players.forEach(opponent => {
@@ -122,7 +140,10 @@ export function calculateHolePoints(hole, players, strokeHolesMap) {
 
       const opponentNetScore = netScores[opponent.id];
       const opponentGrossScore = hole.scores[opponent.id];
-      const opponentHasStroke = playerGetsStrokeOnHole(opponent.id, hole.number, strokeHolesMap);
+
+      // Check if players give strokes TO EACH OTHER on this hole
+      const playerGivesStroke = playerGivesStrokeToOpponent(player, opponent, hole.number, strokeIndexes);
+      const opponentGivesStroke = playerGivesStrokeToOpponent(opponent, player, hole.number, strokeIndexes);
 
       const pointsVsOpponent = calculatePointsBetweenPlayers(
         playerNetScore,
@@ -130,8 +151,8 @@ export function calculateHolePoints(hole, players, strokeHolesMap) {
         playerGrossScore,
         opponentGrossScore,
         hole.par,
-        playerHasStroke,
-        opponentHasStroke
+        playerGivesStroke,
+        opponentGivesStroke
       );
 
       playerTotalPoints += pointsVsOpponent;
@@ -174,8 +195,10 @@ export function calculateGameTotals(holes, players) {
  * @returns {import('../types').Game} Updated game with calculated points
  */
 export function calculateAllPoints(game, strokeHolesMap) {
+  const strokeIndexes = game.holes.map(h => h.strokeIndex);
+
   const updatedHoles = game.holes.map(hole => {
-    const points = calculateHolePoints(hole, game.players, strokeHolesMap);
+    const points = calculateHolePoints(hole, game.players, strokeHolesMap, strokeIndexes);
     const netScores = calculateAllNetScores(hole, game.players, strokeHolesMap);
 
     return {
