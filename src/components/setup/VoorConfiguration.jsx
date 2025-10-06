@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { validateVoor } from '../../utils/validation';
+import { getStrokeHoles } from '../../utils/courseConfig';
 
-export default function VoorConfiguration({ playerNames, onNext, onBack, initialVoor = {} }) {
+export default function VoorConfiguration({ playerNames, courseConfig, onNext, onStart, onBack, initialVoor = {} }) {
   // Initialize voor matrix: { playerId: { receiverId: strokes } }
   const [voorMatrix, setVoorMatrix] = useState(initialVoor);
   const [errors, setErrors] = useState({});
@@ -38,7 +39,7 @@ export default function VoorConfiguration({ playerNames, onNext, onBack, initial
     return voorMatrix[giverIndex]?.[receiverIndex] || 0;
   };
 
-  const handleNext = () => {
+  const handleContinue = () => {
     // Check for reciprocal voor
     const reciprocalErrors = {};
     let hasReciprocal = false;
@@ -60,11 +61,30 @@ export default function VoorConfiguration({ playerNames, onNext, onBack, initial
       return;
     }
 
-    onNext(voorMatrix);
+    // Use onStart if provided (new flow), otherwise onNext (backward compatibility)
+    if (onStart) {
+      onStart(voorMatrix);
+    } else if (onNext) {
+      onNext(voorMatrix);
+    }
   };
 
   const handleSkip = () => {
-    onNext({});
+    if (onStart) {
+      onStart({});
+    } else if (onNext) {
+      onNext({});
+    }
+  };
+
+  // Calculate stroke holes for a player based on total strokes received
+  const getStrokeHolesForPlayer = (playerIndex) => {
+    if (!courseConfig?.strokeIndexes) return [];
+
+    const totalStrokesReceived = getTotalStrokesReceived(playerIndex);
+    if (totalStrokesReceived === 0) return [];
+
+    return getStrokeHoles(totalStrokesReceived, courseConfig.strokeIndexes);
   };
 
   const getTotalStrokesGiven = (playerIndex) => {
@@ -202,18 +222,40 @@ export default function VoorConfiguration({ playerNames, onNext, onBack, initial
         </table>
       </div>
 
-      {/* Summary */}
+      {/* Summary with Stroke Holes Preview */}
       <div className="bg-gray-50 rounded-lg p-4">
-        <h3 className="font-semibold text-gray-800 mb-2">Summary</h3>
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          {playerNames.map((name, index) => (
-            <div key={index} className="flex justify-between">
-              <span className="text-gray-700">{name}:</span>
-              <span className="text-gray-600">
-                Receives {getTotalStrokesReceived(index)} strokes
-              </span>
-            </div>
-          ))}
+        <h3 className="font-semibold text-gray-800 mb-3">Summary</h3>
+        <div className="space-y-3">
+          {playerNames.map((name, index) => {
+            const totalStrokes = getTotalStrokesReceived(index);
+            const strokeHoles = getStrokeHolesForPlayer(index);
+
+            return (
+              <div key={index} className="border-b border-gray-200 pb-2 last:border-0">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="font-medium text-gray-700">{name}:</span>
+                  <span className="text-gray-600">
+                    Receives {totalStrokes} stroke{totalStrokes !== 1 ? 's' : ''}
+                  </span>
+                </div>
+                {strokeHoles.length > 0 && (
+                  <div className="text-xs text-gray-500">
+                    <span className="font-medium">Holes:</span>{' '}
+                    <span className="inline-flex flex-wrap gap-1 mt-1">
+                      {strokeHoles.map((hole) => (
+                        <span
+                          key={hole}
+                          className="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 rounded font-medium"
+                        >
+                          {hole}
+                        </span>
+                      ))}
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -243,10 +285,10 @@ export default function VoorConfiguration({ playerNames, onNext, onBack, initial
           Skip (No Voor)
         </button>
         <button
-          onClick={handleNext}
+          onClick={handleContinue}
           className="flex-1 px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-hover transition-colors"
         >
-          Next: Course Setup
+          {onStart ? 'Start Game' : 'Next: Course Setup'}
         </button>
       </div>
     </div>

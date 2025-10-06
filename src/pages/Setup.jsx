@@ -13,6 +13,7 @@ export default function Setup() {
 
   const [step, setStep] = useState(1);
   const [playerNames, setPlayerNames] = useState([]);
+  const [courseConfig, setCourseConfig] = useState(null);
   const [voorMatrix, setVoorMatrix] = useState({});
   const [showWarning, setShowWarning] = useState(false);
 
@@ -28,17 +29,17 @@ export default function Setup() {
     setStep(2);
   };
 
-  const handleVoorNext = (matrix) => {
-    setVoorMatrix(matrix);
+  const handleCourseNext = (config) => {
+    setCourseConfig(config);
     setStep(3);
   };
 
-  const handleStartGame = (courseConfig) => {
+  const handleStartGame = (matrix) => {
     // Create player objects with IDs and voor configuration
     const players = playerNames.map((name, index) => ({
       id: `player-${index + 1}`,
       name,
-      voorGiven: voorMatrix[index] || {},
+      voorGiven: matrix[index] || {},
       strokeHoles: [], // Will be calculated by the game store
     }));
 
@@ -152,10 +153,10 @@ export default function Setup() {
               Players
             </span>
             <span className={step === 2 ? 'font-semibold text-primary' : ''}>
-              Voor
+              Course
             </span>
             <span className={step === 3 ? 'font-semibold text-primary' : ''}>
-              Course
+              Voor
             </span>
           </div>
         </div>
@@ -170,18 +171,19 @@ export default function Setup() {
           )}
 
           {step === 2 && (
-            <VoorConfiguration
-              playerNames={playerNames}
-              onNext={handleVoorNext}
+            <CourseSetup
+              onNext={handleCourseNext}
               onBack={handleBack}
-              initialVoor={voorMatrix}
             />
           )}
 
           {step === 3 && (
-            <CourseSetup
+            <VoorConfiguration
+              playerNames={playerNames}
+              courseConfig={courseConfig}
               onStart={handleStartGame}
               onBack={handleBack}
+              initialVoor={voorMatrix}
             />
           )}
         </div>

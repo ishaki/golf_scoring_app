@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import useCourseStore from '../../store/courseStore';
 
-export default function CourseSetup({ onStart, onBack }) {
+export default function CourseSetup({ onNext, onStart, onBack }) {
   const { courses, loadCourses, getCoursesByType, getCombinedCourse, select18Hole, selectFront9, selectBack9, selectedFront9, selectedBack9, selectedCourse } = useCourseStore();
 
   const [selected18HoleId, setSelected18HoleId] = useState(null);
@@ -39,8 +39,8 @@ export default function CourseSetup({ onStart, onBack }) {
     selectBack9(courseId);
   };
 
-  // Handle start
-  const handleStart = () => {
+  // Handle next/start
+  const handleContinue = () => {
     const combinedCourse = getCombinedCourse();
 
     if (!combinedCourse) {
@@ -54,7 +54,12 @@ export default function CourseSetup({ onStart, onBack }) {
       courseName: combinedCourse.courseName
     };
 
-    onStart(config);
+    // Use onNext if provided (new flow), otherwise onStart (backward compatibility)
+    if (onNext) {
+      onNext(config);
+    } else if (onStart) {
+      onStart(config);
+    }
   };
 
   // Check if can start
@@ -226,11 +231,11 @@ export default function CourseSetup({ onStart, onBack }) {
           Back
         </button>
         <button
-          onClick={handleStart}
+          onClick={handleContinue}
           disabled={!canStart}
           className="flex-1 px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Start Game
+          {onNext ? 'Next: Voor Setup' : 'Start Game'}
         </button>
       </div>
     </div>
