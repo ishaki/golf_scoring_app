@@ -6,7 +6,7 @@ export default function ShareModal({ game, onClose }) {
   const [isCopied, setIsCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const publicUrl = `${window.location.origin}/shared/${game.publicToken}`;
+  const publicUrl = `${window.location.origin}/shared/${game.public_token || game.publicToken}`;
 
   const handleToggleShare = async () => {
     setIsLoading(true);
