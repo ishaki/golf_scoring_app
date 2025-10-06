@@ -1,7 +1,15 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { calculateAllStrokeHoles } from '../../utils/voor';
 
 export default function HoleBreakdown({ players, holes }) {
   const [viewMode, setViewMode] = useState('points'); // 'points' or 'scores'
+
+  // Calculate stroke holes map
+  const strokeHolesMap = useMemo(() => {
+    if (!holes || holes.length === 0) return {};
+    const strokeIndexes = holes.map(h => h.strokeIndex);
+    return calculateAllStrokeHoles(players, strokeIndexes);
+  }, [players, holes]);
 
   const getPointsColor = (points) => {
     if (points > 0) return 'bg-green-100 text-green-800';
@@ -101,7 +109,7 @@ export default function HoleBreakdown({ players, holes }) {
                     : getScoreColor(hole.scores?.[player.id], hole.par);
 
                   // Check if player receives voor stroke on this hole
-                  const hasStroke = player.strokeHoles && player.strokeHoles.includes(hole.number);
+                  const hasStroke = strokeHolesMap[player.id]?.includes(hole.number);
 
                   return (
                     <td key={hole.number} className="px-3 py-3 text-center">
