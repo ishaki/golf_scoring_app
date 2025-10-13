@@ -10,6 +10,7 @@ import Auth from './pages/Auth';
 import Profile from './pages/Profile';
 import ResetPassword from './pages/ResetPassword';
 import PublicDashboard from './pages/PublicDashboard';
+import Admin from './pages/Admin';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import EmailVerificationBanner from './components/auth/EmailVerificationBanner';
 import useAuthStore from './store/authStore';
@@ -94,6 +95,14 @@ function App() {
           element={
             <ProtectedRoute>
               <History />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <Admin />
             </ProtectedRoute>
           }
         />

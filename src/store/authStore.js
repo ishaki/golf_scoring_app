@@ -9,6 +9,7 @@ const useAuthStore = create((set, get) => ({
   // State
   user: null,
   session: null,
+  profile: null,
   loading: true,
   error: null,
 
@@ -32,13 +33,24 @@ const useAuthStore = create((set, get) => ({
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         if (userError) throw userError;
 
-        set({ user, session, loading: false });
+        // Get user profile with role
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError) {
+          console.warn('Profile not found, user may need to complete registration');
+        }
+
+        set({ user, session, profile, loading: false });
       } else {
-        set({ user: null, session: null, loading: false });
+        set({ user: null, session: null, profile: null, loading: false });
       }
     } catch (error) {
       console.error('Auth initialization error:', error);
-      set({ user: null, session: null, loading: false, error: error.message });
+      set({ user: null, session: null, profile: null, loading: false, error: error.message });
     }
   },
 
@@ -93,7 +105,18 @@ const useAuthStore = create((set, get) => ({
 
       if (error) throw error;
 
-      set({ user: data.user, session: data.session, loading: false });
+      // Get user profile with role
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError) {
+        console.warn('Profile not found after sign in');
+      }
+
+      set({ user: data.user, session: data.session, profile, loading: false });
 
       return { success: true, data };
     } catch (error) {
@@ -140,7 +163,7 @@ const useAuthStore = create((set, get) => ({
 
       if (error) throw error;
 
-      set({ user: null, session: null, loading: false });
+      set({ user: null, session: null, profile: null, loading: false });
 
       return { success: true };
     } catch (error) {
@@ -271,12 +294,31 @@ const useAuthStore = create((set, get) => ({
   },
 
   /**
+   * Check if current user is admin
+   * @returns {boolean}
+   */
+  isAdmin: () => {
+    const { profile } = get();
+    return profile?.role === 'admin';
+  },
+
+  /**
+   * Get current user role
+   * @returns {'user'|'admin'|null}
+   */
+  getUserRole: () => {
+    const { profile } = get();
+    return profile?.role || null;
+  },
+
+  /**
    * Set auth state manually (for auth state change listener)
    * @param {object} user
    * @param {object} session
+   * @param {object} profile
    */
-  setAuthState: (user, session) => {
-    set({ user, session });
+  setAuthState: (user, session, profile) => {
+    set({ user, session, profile });
   },
 }));
 

@@ -26,6 +26,7 @@ CREATE TABLE public.profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   display_name TEXT,
   avatar_url TEXT,
+  role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -38,6 +39,15 @@ CREATE POLICY "Users can view their own profile"
   ON public.profiles FOR SELECT
   USING (auth.uid() = id);
 
+CREATE POLICY "Admins can view all profiles"
+  ON public.profiles FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
 CREATE POLICY "Users can insert their own profile"
   ON public.profiles FOR INSERT
   WITH CHECK (auth.uid() = id);
@@ -46,6 +56,21 @@ CREATE POLICY "Users can update their own profile"
   ON public.profiles FOR UPDATE
   USING (auth.uid() = id)
   WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "Admins can update any profile"
+  ON public.profiles FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
 
 -- =====================================================
 -- 2. COURSES TABLE
@@ -77,6 +102,10 @@ CREATE POLICY "Users can view courses"
     OR is_default = TRUE
     OR is_public = TRUE
     OR created_by IS NULL
+    OR EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() AND role = 'admin'
+    )
   );
 
 CREATE POLICY "Authenticated users can insert courses"
@@ -97,11 +126,35 @@ CREATE POLICY "Users can update their own courses only"
     AND is_default = FALSE
   );
 
+CREATE POLICY "Admins can update any course"
+  ON public.courses FOR UPDATE
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
 CREATE POLICY "Users can delete their own courses only"
   ON public.courses FOR DELETE
   USING (
     created_by = auth.uid()
     AND is_default = FALSE
+  );
+
+CREATE POLICY "Admins can delete any course"
+  ON public.courses FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() AND role = 'admin'
+    )
   );
 
 -- =====================================================
@@ -136,6 +189,15 @@ CREATE POLICY "Users can view their own games"
   ON public.games FOR SELECT
   USING (created_by = auth.uid());
 
+CREATE POLICY "Admins can view all games"
+  ON public.games FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
 CREATE POLICY "Anyone can view public games"
   ON public.games FOR SELECT
   USING (is_public = TRUE);
@@ -155,9 +217,34 @@ CREATE POLICY "Users can update their own incomplete games"
   )
   WITH CHECK (created_by = auth.uid());
 
+CREATE POLICY "Admins can update any incomplete game"
+  ON public.games FOR UPDATE
+  USING (
+    is_complete = FALSE
+    AND EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  )
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
+
 CREATE POLICY "Users can delete their own games"
   ON public.games FOR DELETE
   USING (created_by = auth.uid());
+
+CREATE POLICY "Admins can delete any game"
+  ON public.games FOR DELETE
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.profiles 
+      WHERE id = auth.uid() AND role = 'admin'
+    )
+  );
 
 -- =====================================================
 -- 4. FUNCTIONS & TRIGGERS
@@ -186,10 +273,11 @@ CREATE TRIGGER update_games_updated_at
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, display_name)
+  INSERT INTO public.profiles (id, display_name, role)
   VALUES (
     NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1))
+    COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)),
+    'user'
   );
   RETURN NEW;
 END;
