@@ -5,6 +5,7 @@ import { calculateAllStrokeHoles } from '../utils/voor';
 import PlayerSetup from '../components/setup/PlayerSetup';
 import VoorConfiguration from '../components/setup/VoorConfiguration';
 import CourseSetup from '../components/setup/CourseSetup';
+import ScoringSystemSelection from '../components/setup/ScoringSystemSelection';
 import ScoringConfiguration from '../components/setup/ScoringConfiguration';
 
 export default function Setup() {
@@ -17,6 +18,7 @@ export default function Setup() {
   const [playerNames, setPlayerNames] = useState([]);
   const [courseConfig, setCourseConfig] = useState(null);
   const [voorMatrix, setVoorMatrix] = useState({});
+  const [scoringSystem, setScoringSystem] = useState(null);
   const [scoringConfig, setScoringConfig] = useState(null);
   const [showWarning, setShowWarning] = useState(false);
 
@@ -40,6 +42,15 @@ export default function Setup() {
   const handleVoorNext = (matrix) => {
     setVoorMatrix(matrix);
     setStep(4);
+  };
+
+  const handleScoringSystemNext = (system) => {
+    setScoringSystem(system);
+    setStep(5);
+  };
+
+  const handleScoringSystemBack = () => {
+    setStep(3);
   };
 
   const handleStartGame = (config) => {
@@ -74,8 +85,8 @@ export default function Setup() {
       strokeHoles: strokeHolesMap[player.id] || [],
     }));
 
-    // Create game with scoring configuration
-    createGame(playersWithStrokeHoles, courseConfig, config);
+    // Create game with scoring configuration and scoring system
+    createGame(playersWithStrokeHoles, courseConfig, config, scoringSystem);
 
     // Navigate to game screen
     navigate('/game');
@@ -156,7 +167,7 @@ export default function Setup() {
         {/* Progress indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
-            {[1, 2, 3, 4].map((num) => (
+            {[1, 2, 3, 4, 5].map((num) => (
               <div key={num} className="flex items-center">
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors ${
@@ -169,7 +180,7 @@ export default function Setup() {
                 >
                   {step > num ? '✓' : num}
                 </div>
-                {num < 4 && (
+                {num < 5 && (
                   <div
                     className={`w-12 h-1 mx-1 ${
                       step > num ? 'bg-green-500' : 'bg-gray-300'
@@ -190,6 +201,9 @@ export default function Setup() {
               Voor
             </span>
             <span className={step === 4 ? 'font-semibold text-primary' : ''}>
+              System
+            </span>
+            <span className={step === 5 ? 'font-semibold text-primary' : ''}>
               Scoring
             </span>
           </div>
@@ -222,6 +236,14 @@ export default function Setup() {
           )}
 
           {step === 4 && (
+            <ScoringSystemSelection
+              onContinue={handleScoringSystemNext}
+              onBack={handleScoringSystemBack}
+              initialSystem={scoringSystem}
+            />
+          )}
+
+          {step === 5 && (
             <ScoringConfiguration
               onNext={handleStartGame}
               onBack={handleBack}

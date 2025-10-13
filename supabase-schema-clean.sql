@@ -120,6 +120,7 @@ CREATE TABLE public.games (
   is_public BOOLEAN DEFAULT FALSE,
   public_token UUID DEFAULT uuid_generate_v4() UNIQUE,
   scoring_config JSONB DEFAULT '{}'::jsonb,
+  scoring_system TEXT DEFAULT 'fighter' CHECK (scoring_system IN ('fighter', 'single_winner')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

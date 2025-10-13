@@ -17,7 +17,7 @@ const DEFAULT_SCORING_CONFIG = {
   },
 };
 
-export default function VoorView({ players, holes, scoringConfig }) {
+export default function VoorView({ players, holes, scoringConfig, scoringSystem }) {
   // Use default config if scoringConfig is null/undefined
   const config = scoringConfig || DEFAULT_SCORING_CONFIG;
   // Calculate stroke holes map
@@ -222,6 +222,44 @@ export default function VoorView({ players, holes, scoringConfig }) {
               ))}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Scoring System Section */}
+      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div className="bg-blue-600 text-white px-6 py-4">
+          <h2 className="text-2xl font-bold">Scoring System</h2>
+          <p className="text-blue-100">How points are calculated for this game</p>
+        </div>
+        <div className="p-6">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 className="font-semibold text-blue-800 text-lg mb-2">
+              {scoringSystem === 'fighter' ? 'Fighter Scoring' : 'Single Winner Scoring'}
+            </h3>
+            <p className="text-sm text-blue-700 mb-3">
+              {scoringSystem === 'fighter' 
+                ? 'Players compete head-to-head on each hole. Points are awarded based on net score comparisons with special rules for handicap (voor) holes.'
+                : 'The player with the lowest score on each hole wins all the points for that hole.'
+              }
+            </p>
+            <div className="text-xs text-blue-600">
+              {scoringSystem === 'fighter' ? (
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Compare net scores against all other players</li>
+                  <li>Points based on gross score vs par</li>
+                  <li>Special tie-breaking rules for handicap holes</li>
+                  <li>Zero-sum scoring (total points = 0)</li>
+                </ul>
+              ) : (
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Only the lowest scorer gets points</li>
+                  <li>Points based on winner's gross score vs par</li>
+                  <li>Simple and straightforward</li>
+                  <li>Can result in large point swings</li>
+                </ul>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 

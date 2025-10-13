@@ -303,7 +303,7 @@ export default function VoorConfiguration({ playerNames, courseConfig, onNext, o
           onClick={handleContinue}
           className="flex-1 px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-hover transition-colors"
         >
-          {onNext ? 'Next: Scoring Configuration' : 'Start Game'}
+          {onNext ? 'Next: Scoring System' : 'Start Game'}
         </button>
       </div>
     </div>

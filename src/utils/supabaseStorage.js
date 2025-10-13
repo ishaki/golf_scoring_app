@@ -58,6 +58,7 @@ export async function saveCurrentGame(game) {
         is_complete: game.isComplete,
         course_name: game.courseName,
         scoring_config: game.scoringConfig,
+        scoring_system: game.scoringSystem,
         updated_at: new Date().toISOString()
       };
 
@@ -92,7 +93,8 @@ export async function saveCurrentGame(game) {
         is_complete: game.isComplete,
         course_name: game.courseName,
         created_at: game.createdAt,
-        scoring_config: game.scoringConfig
+        scoring_config: game.scoringConfig,
+        scoring_system: game.scoringSystem
       };
 
       console.log('[supabaseStorage] Insert data:', {
@@ -191,7 +193,8 @@ export async function loadCurrentGame() {
       courseName: gameData.course_name,
       isPublic: gameData.is_public,
       public_token: gameData.public_token,
-      scoringConfig: gameData.scoring_config
+      scoringConfig: gameData.scoring_config,
+      scoringSystem: gameData.scoring_system
     };
   } catch (error) {
     console.error('[supabaseStorage] loadCurrentGame: ❌ Error:', error);
@@ -279,7 +282,8 @@ export async function loadGameHistory() {
       courseName: game.course_name,
       isPublic: game.is_public,
       public_token: game.public_token,
-      scoringConfig: game.scoring_config
+      scoringConfig: game.scoring_config,
+      scoringSystem: game.scoring_system
     }));
   } catch (error) {
     console.error('Error loading game history:', error);
@@ -322,7 +326,8 @@ export async function loadGameById(gameId) {
       courseName: data.course_name,
       isPublic: data.is_public,
       public_token: data.public_token,
-      scoringConfig: data.scoring_config
+      scoringConfig: data.scoring_config,
+      scoringSystem: data.scoring_system
     };
   } catch (error) {
     console.error('Error loading game by ID:', error);

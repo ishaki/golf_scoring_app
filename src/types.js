@@ -29,6 +29,10 @@
  */
 
 /**
+ * @typedef {'fighter'|'single_winner'} ScoringSystem
+ */
+
+/**
  * @typedef {Object} Game
  * @property {string} id - Unique game identifier
  * @property {string} createdAt - ISO timestamp
@@ -38,6 +42,7 @@
  * @property {boolean} isComplete - Whether game is finished
  * @property {Object.<string, number>} totals - Cumulative points (playerId: totalPoints)
  * @property {ScoringConfiguration} scoringConfig - Scoring configuration for this game
+ * @property {ScoringSystem} scoringSystem - Scoring system type ('fighter' or 'single_winner')
  * @property {string} public_token - UUID for public sharing
  * @property {boolean} isPublic - Whether game is publicly shared
  */

@@ -105,7 +105,7 @@ export default function Dashboard() {
           )}
 
           {activeTab === 'voor' && (
-            <VoorView players={game.players} holes={game.holes} scoringConfig={game.scoringConfig} />
+            <VoorView players={game.players} holes={game.holes} scoringConfig={game.scoringConfig} scoringSystem={game.scoringSystem} />
           )}
 
           {activeTab === 'summary' && (
