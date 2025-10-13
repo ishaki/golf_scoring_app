@@ -89,7 +89,7 @@ export default function Game() {
   };
 
   const handleNext = async () => {
-    // Check if all scores are entered
+    // Check if all scores are entered for current hole
     const allScoresEntered = game.players.every(
       player => currentHole.scores[player.id] !== undefined && currentHole.scores[player.id] !== null
     );
@@ -99,15 +99,26 @@ export default function Game() {
       return;
     }
 
-    if (game.currentHole === 18) {
+    // Check if all holes are completed (Finish Game)
+    if (areAllHolesCompleted()) {
+      console.log('[Game] Finishing game - all holes completed');
+      
       // Mark game as complete
       const completeGame = useGameStore.getState();
       await completeGame.updateGame({
         isComplete: true
       });
 
+      console.log('[Game] Game marked as complete, navigating to dashboard');
       // Navigate to dashboard
       navigate('/dashboard');
+      return;
+    }
+
+    // Regular navigation to next hole
+    if (game.currentHole === 18) {
+      // Already on hole 18 but not all holes completed
+      alert('Please complete all holes before finishing the game.');
     } else {
       nextHole();
     }
@@ -125,10 +136,23 @@ export default function Game() {
     navigate('/dashboard');
   };
 
-  // Check if can go to next hole (all scores entered)
+  // Check if all holes have scores for all players
+  const areAllHolesCompleted = () => {
+    return game.holes.every(hole => 
+      game.players.every(player => 
+        hole.scores[player.id] !== undefined && 
+        hole.scores[player.id] !== null
+      )
+    );
+  };
+
+  // Check if can go to next hole (all scores entered for current hole)
   const canGoNext = game.players.every(
     player => currentHole.scores[player.id] !== undefined && currentHole.scores[player.id] !== null
   );
+
+  // Check if Finish button should be enabled (all holes completed)
+  const canFinish = areAllHolesCompleted();
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 pb-20">
@@ -150,6 +174,7 @@ export default function Game() {
           onNext={handleNext}
           onJumpToHole={handleJumpToHole}
           canGoNext={canGoNext}
+          canFinish={canFinish}
           onViewDashboard={handleViewDashboard}
         />
       </div>

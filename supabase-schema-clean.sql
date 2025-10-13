@@ -26,6 +26,7 @@ CREATE TABLE public.profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   display_name TEXT,
   avatar_url TEXT,
+  role TEXT DEFAULT 'user' CHECK (role IN ('user', 'admin')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -38,6 +39,10 @@ CREATE POLICY "Users can view their own profile"
   ON public.profiles FOR SELECT
   USING (auth.uid() = id);
 
+CREATE POLICY "Admins can view all profiles"
+  ON public.profiles FOR SELECT
+  USING (public.is_admin());
+
 CREATE POLICY "Users can insert their own profile"
   ON public.profiles FOR INSERT
   WITH CHECK (auth.uid() = id);
@@ -46,6 +51,11 @@ CREATE POLICY "Users can update their own profile"
   ON public.profiles FOR UPDATE
   USING (auth.uid() = id)
   WITH CHECK (auth.uid() = id);
+
+CREATE POLICY "Admins can update any profile"
+  ON public.profiles FOR UPDATE
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
 
 -- =====================================================
 -- 2. COURSES TABLE
@@ -63,6 +73,21 @@ CREATE TABLE public.courses (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Add foreign key to profiles for Supabase relationship understanding
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'courses_created_by_fkey' 
+        AND table_name = 'courses' 
+        AND table_schema = 'public'
+    ) THEN
+        ALTER TABLE public.courses
+        ADD CONSTRAINT courses_created_by_fkey 
+        FOREIGN KEY (created_by) REFERENCES public.profiles(id) ON DELETE CASCADE;
+    END IF;
+END $$;
+
 CREATE INDEX courses_created_by_idx ON public.courses(created_by);
 CREATE INDEX courses_type_idx ON public.courses(type);
 CREATE INDEX courses_is_default_idx ON public.courses(is_default);
@@ -77,6 +102,7 @@ CREATE POLICY "Users can view courses"
     OR is_default = TRUE
     OR is_public = TRUE
     OR created_by IS NULL
+    OR public.is_admin()
   );
 
 CREATE POLICY "Authenticated users can insert courses"
@@ -97,12 +123,21 @@ CREATE POLICY "Users can update their own courses only"
     AND is_default = FALSE
   );
 
+CREATE POLICY "Admins can update any course"
+  ON public.courses FOR UPDATE
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
+
 CREATE POLICY "Users can delete their own courses only"
   ON public.courses FOR DELETE
   USING (
     created_by = auth.uid()
     AND is_default = FALSE
   );
+
+CREATE POLICY "Admins can delete any course"
+  ON public.courses FOR DELETE
+  USING (public.is_admin());
 
 -- =====================================================
 -- 3. GAMES TABLE
@@ -125,6 +160,21 @@ CREATE TABLE public.games (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Add foreign key to profiles for Supabase relationship understanding
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'games_created_by_fkey' 
+        AND table_name = 'games' 
+        AND table_schema = 'public'
+    ) THEN
+        ALTER TABLE public.games
+        ADD CONSTRAINT games_created_by_fkey 
+        FOREIGN KEY (created_by) REFERENCES public.profiles(id) ON DELETE CASCADE;
+    END IF;
+END $$;
+
 CREATE INDEX games_created_by_idx ON public.games(created_by);
 CREATE INDEX games_public_token_idx ON public.games(public_token);
 CREATE INDEX games_is_complete_idx ON public.games(is_complete);
@@ -135,6 +185,10 @@ ALTER TABLE public.games ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their own games"
   ON public.games FOR SELECT
   USING (created_by = auth.uid());
+
+CREATE POLICY "Admins can view all games"
+  ON public.games FOR SELECT
+  USING (public.is_admin());
 
 CREATE POLICY "Anyone can view public games"
   ON public.games FOR SELECT
@@ -147,21 +201,38 @@ CREATE POLICY "Authenticated users can create games"
     AND created_by = auth.uid()
   );
 
-CREATE POLICY "Users can update their own incomplete games"
+CREATE POLICY "Users can update their own games"
   ON public.games FOR UPDATE
-  USING (
-    created_by = auth.uid()
-    AND is_complete = FALSE
-  )
+  USING (created_by = auth.uid())
   WITH CHECK (created_by = auth.uid());
+
+CREATE POLICY "Admins can update any game"
+  ON public.games FOR UPDATE
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
 
 CREATE POLICY "Users can delete their own games"
   ON public.games FOR DELETE
   USING (created_by = auth.uid());
 
+CREATE POLICY "Admins can delete any game"
+  ON public.games FOR DELETE
+  USING (public.is_admin());
+
 -- =====================================================
 -- 4. FUNCTIONS & TRIGGERS
 -- =====================================================
+
+-- Function to check if current user is admin (avoids infinite recursion in RLS policies)
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM public.profiles 
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
@@ -186,10 +257,11 @@ CREATE TRIGGER update_games_updated_at
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO public.profiles (id, display_name)
+  INSERT INTO public.profiles (id, display_name, role)
   VALUES (
     NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1))
+    COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1)),
+    'user'
   );
   RETURN NEW;
 END;
@@ -202,7 +274,7 @@ CREATE TRIGGER on_auth_user_created
 -- =====================================================
 -- 5. DEFAULT COURSES
 -- =====================================================
-
+/*
 INSERT INTO public.courses (id, name, type, holes, is_default, is_public)
 VALUES
   (
@@ -286,6 +358,7 @@ VALUES
     TRUE,
     TRUE
   );
+*/
 
 -- =====================================================
 -- 6. PERMISSIONS

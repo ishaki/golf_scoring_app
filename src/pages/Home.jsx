@@ -6,7 +6,7 @@ import useAuthStore from '../store/authStore';
 export default function Home() {
   const navigate = useNavigate();
   const { game, loadGame } = useGameStore();
-  const { user } = useAuthStore();
+  const { user, isAdmin } = useAuthStore();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -86,6 +86,15 @@ export default function Home() {
           >
             Manage Courses
           </Link>
+
+          {isAdmin() && (
+            <Link
+              to="/admin"
+              className="block w-full bg-purple-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-purple-700 transition-colors shadow-md"
+            >
+              Admin Panel
+            </Link>
+          )}
 
           <Link
             to="/history"

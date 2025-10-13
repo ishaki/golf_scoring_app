@@ -10,10 +10,11 @@ import Auth from './pages/Auth';
 import Profile from './pages/Profile';
 import ResetPassword from './pages/ResetPassword';
 import PublicDashboard from './pages/PublicDashboard';
+import Admin from './pages/Admin';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import EmailVerificationBanner from './components/auth/EmailVerificationBanner';
 import useAuthStore from './store/authStore';
-import { onAuthStateChange } from './lib/supabase';
+import { onAuthStateChange, supabase } from './lib/supabase';
 
 function App() {
   const { initialize, setAuthState } = useAuthStore();
@@ -23,8 +24,19 @@ function App() {
     initialize();
 
     // Listen for auth state changes
-    const { data: { subscription } } = onAuthStateChange((event, session) => {
-      setAuthState(session?.user || null, session);
+    const { data: { subscription } } = onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+        // Fetch profile when user signs in
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        
+        setAuthState(session.user, session, profile);
+      } else {
+        setAuthState(null, null, null);
+      }
     });
 
     return () => {
@@ -94,6 +106,14 @@ function App() {
           element={
             <ProtectedRoute>
               <History />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <Admin />
             </ProtectedRoute>
           }
         />

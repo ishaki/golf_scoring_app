@@ -7,6 +7,7 @@ export default function Navigation({
   onNext,
   onJumpToHole,
   canGoNext = true,
+  canFinish = false,
   onViewDashboard,
 }) {
   const [showHoleSelector, setShowHoleSelector] = useState(false);
@@ -66,8 +67,18 @@ export default function Navigation({
               : 'bg-gray-200 text-gray-400 cursor-not-allowed'
           }`}
         >
-          {currentHole === totalHoles ? 'Finish' : 'Next'} →
+          {currentHole === totalHoles ? 'Next' : 'Next'} →
         </button>
+
+        {/* Finish button - only show when all holes are completed */}
+        {canFinish && (
+          <button
+            onClick={onNext}
+            className="px-6 py-3 rounded-lg font-semibold transition-colors bg-green-500 text-white hover:bg-green-600"
+          >
+            Finish Game ✓
+          </button>
+        )}
       </div>
 
       {/* Hole selector dropdown */}

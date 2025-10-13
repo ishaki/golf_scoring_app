@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useGameStore } from '../store/gameStore';
+import useAuthStore from '../store/authStore';
+import { supabase } from '../lib/supabase';
 import Leaderboard from '../components/dashboard/Leaderboard';
 import HoleBreakdown from '../components/dashboard/HoleBreakdown';
 import TransactionMatrix from '../components/dashboard/TransactionMatrix';
@@ -10,18 +12,145 @@ import ShareButton from '../components/dashboard/ShareButton';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const gameId = searchParams.get('game');
   const game = useGameStore((state) => state.game);
   const saveAndClearGame = useGameStore((state) => state.saveAndClearGame);
+  const { isAdmin, profile, user } = useAuthStore();
   const [activeTab, setActiveTab] = useState('leaderboard');
+  const [viewingGame, setViewingGame] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Redirect to setup if no game exists
-    if (!game) {
+    // If gameId is provided, load that specific game (for admin viewing)
+    if (gameId) {
+      loadGameById(gameId);
+    } else if (!game) {
+      // Redirect to setup if no game exists and no gameId provided
       navigate('/setup');
     }
-  }, [game, navigate]);
+  }, [gameId, game, navigate]);
 
-  if (!game) {
+  const loadGameById = async (id) => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log('[Dashboard] Loading game by ID:', id);
+      
+      // Get current user and verify admin status
+      const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      
+      if (!currentUser) {
+        setError('Access Denied: Please log in to access this page.');
+        return;
+      }
+
+      // Fetch user profile to check admin status
+      const { data: userProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', currentUser.id)
+        .single();
+
+      if (profileError) {
+        console.error('[Dashboard] Error fetching profile:', profileError);
+        setError('Access Denied: Unable to verify user permissions.');
+        return;
+      }
+
+      console.log('[Dashboard] User profile:', { user: currentUser.id, role: userProfile?.role });
+
+      if (userProfile?.role !== 'admin') {
+        console.log('[Dashboard] Access denied - not admin');
+        setError('Access Denied: You need admin privileges to access this page.');
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('games')
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (error) {
+        console.error('[Dashboard] Error loading game:', error);
+        throw error;
+      }
+
+      if (!data) {
+        setError('Game not found.');
+        return;
+      }
+
+      console.log('[Dashboard] Game loaded:', {
+        id: data.id,
+        course_name: data.course_name,
+        is_complete: data.is_complete,
+        created_by: data.created_by
+      });
+
+      // Convert Supabase data to game format
+      const gameData = {
+        id: data.id,
+        players: data.players || [],
+        holes: data.holes || [],
+        currentHole: data.current_hole || 1,
+        totals: data.totals || {},
+        isComplete: data.is_complete || false,
+        courseName: data.course_name || 'Unknown Course',
+        scoringConfig: data.scoring_config || {},
+        scoringSystem: data.scoring_system || 'fighter',
+        publicToken: data.public_token,
+        isPublic: data.is_public || false,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        created_by: data.created_by
+      };
+
+      setViewingGame(gameData);
+    } catch (err) {
+      console.error('[Dashboard] Error loading game by ID:', err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Determine which game to display
+  const displayGame = viewingGame || game;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading game...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-red-600 mb-4">Error</h1>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={() => navigate('/admin')}
+            className="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors"
+          >
+            Back to Admin Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!displayGame) {
     return null;
   }
 
@@ -34,7 +163,7 @@ export default function Dashboard() {
            date.getFullYear() === today.getFullYear();
   };
 
-  const canEditGame = game.isComplete && isToday(game.createdAt);
+  const canEditGame = displayGame.isComplete && isToday(displayGame.createdAt);
 
   const handleNewGame = () => {
     if (confirm('Start a new game? Current game will be saved to history.')) {
@@ -44,7 +173,7 @@ export default function Dashboard() {
   };
 
   const handleBackToGame = () => {
-    if (game.isComplete && !canEditGame) {
+    if (displayGame.isComplete && !canEditGame) {
       alert('This game was completed on a previous day and can no longer be edited.');
       return;
     }
@@ -64,9 +193,21 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Game Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Game Dashboard
+            {viewingGame && (
+              <span className="ml-3 text-sm font-normal text-purple-600 bg-purple-100 px-3 py-1 rounded-full">
+                Admin View
+              </span>
+            )}
+          </h1>
           <p className="text-gray-600">
-            {new Date(game.createdAt).toLocaleDateString()} • {game.players.length} Players
+            {new Date(displayGame.createdAt).toLocaleDateString()} • {displayGame.players.length} Players
+            {viewingGame && (
+              <span className="ml-2 text-sm text-gray-500">
+                • Created by: {viewingGame.created_by?.substring(0, 8)}...
+              </span>
+            )}
           </p>
         </div>
 
@@ -93,44 +234,44 @@ export default function Dashboard() {
         {/* Tab Content */}
         <div className="mb-6">
           {activeTab === 'leaderboard' && (
-            <Leaderboard players={game.players} totals={game.totals} />
+            <Leaderboard players={displayGame.players} totals={displayGame.totals} />
           )}
 
           {activeTab === 'breakdown' && (
-            <HoleBreakdown players={game.players} holes={game.holes} />
+            <HoleBreakdown players={displayGame.players} holes={displayGame.holes} />
           )}
 
           {activeTab === 'transactions' && (
-            <TransactionMatrix game={game} />
+            <TransactionMatrix game={displayGame} />
           )}
 
           {activeTab === 'voor' && (
-            <VoorView players={game.players} holes={game.holes} scoringConfig={game.scoringConfig} scoringSystem={game.scoringSystem} />
+            <VoorView players={displayGame.players} holes={displayGame.holes} scoringConfig={displayGame.scoringConfig} scoringSystem={displayGame.scoringSystem} />
           )}
 
           {activeTab === 'summary' && (
-            <GameSummary game={game} />
+            <GameSummary game={displayGame} />
           )}
         </div>
 
         {/* Action Buttons */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <div className="flex flex-col sm:flex-row gap-4">
-            {(!game.isComplete || canEditGame) && (
+            {(!displayGame.isComplete || canEditGame) && !viewingGame && (
               <button
                 onClick={handleBackToGame}
                 className="flex-1 px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-hover transition-colors"
               >
-                {game.isComplete && canEditGame ? '✏️ Edit Game (Today Only)' : '← Back to Game'}
+                {displayGame.isComplete && canEditGame ? '✏️ Edit Game (Today Only)' : '← Back to Game'}
               </button>
             )}
 
-            <ShareButton game={game} />
+            <ShareButton game={displayGame} />
 
             <button
               onClick={handleNewGame}
               className={`${
-                game.isComplete && !canEditGame ? 'flex-1' : ''
+                displayGame.isComplete && !canEditGame ? 'flex-1' : ''
               } px-6 py-3 bg-green-500 text-white rounded-lg font-semibold hover:bg-green-600 transition-colors`}
             >
               New Game

@@ -332,7 +332,7 @@ export default function VoorView({ players, holes, scoringConfig, scoringSystem 
                 <li>• The number of points depends on your gross score vs par</li>
                 <li>• Example: If you make birdie and opponent makes par, you get {config.birdie?.againstLower || 0} points</li>
                 <li>• Example: If you make eagle and opponent makes bogey, you get {config.eagleOrBetter?.againstLower || 0} points</li>
-                <li>• Total points per hole sum to zero across all players</li>
+                <li>• Total points per hole sum to zero across all players (for Fighter Score)</li>
               </ul>
             </div>
           </div>

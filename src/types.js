@@ -80,4 +80,18 @@
  * @property {boolean} isDefault - True for system preset courses
  */
 
+/**
+ * @typedef {'user'|'admin'} UserRole
+ */
+
+/**
+ * @typedef {Object} UserProfile
+ * @property {string} id - User ID
+ * @property {string} display_name - Display name
+ * @property {string} avatar_url - Avatar URL
+ * @property {UserRole} role - User role ('user' or 'admin')
+ * @property {string} created_at - ISO timestamp
+ * @property {string} updated_at - ISO timestamp
+ */
+
 export {};

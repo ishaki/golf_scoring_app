@@ -66,6 +66,7 @@ export async function saveCurrentGame(game) {
         id: game.id,
         currentHole: game.currentHole,
         isComplete: game.isComplete,
+        is_complete: updateData.is_complete,
         holesWithScores: game.holes.filter(h => Object.keys(h.scores || {}).length > 0).length
       });
 
@@ -153,13 +154,29 @@ export async function loadCurrentGame() {
 
     console.log('[supabaseStorage] loadCurrentGame: User authenticated:', user.id);
 
-    const { data, error } = await supabase
+    // Check if user is admin
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    const isAdmin = profile?.role === 'admin';
+
+    // Build query based on user role
+    let query = supabase
       .from('games')
       .select('*')
-      .eq('created_by', user.id)
       .eq('is_complete', false)
       .order('created_at', { ascending: false })
       .limit(1);
+
+    // Both regular users and admins should only load their own current games
+    // Admins can view all games in admin dashboard, but for current game loading,
+    // they should only see their own incomplete games
+    query = query.eq('created_by', user.id);
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('[supabaseStorage] loadCurrentGame: Query error:', error);
@@ -261,13 +278,30 @@ export async function loadGameHistory() {
       return [];
     }
 
-    const { data, error } = await supabase
+    // Check if user is admin
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    const isAdmin = profile?.role === 'admin';
+
+    // Build query based on user role
+    let query = supabase
       .from('games')
       .select('*')
-      .eq('created_by', user.id)
       .eq('is_complete', true)
       .order('created_at', { ascending: false })
       .limit(20);
+
+    if (!isAdmin) {
+      // Regular users can only see their own games
+      query = query.eq('created_by', user.id);
+    }
+    // Admins can see all games (no additional filter)
+
+    const { data, error } = await query;
 
     if (error) throw error;
 
@@ -304,12 +338,28 @@ export async function loadGameById(gameId) {
       return null;
     }
 
-    const { data, error } = await supabase
+    // Check if user is admin
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    const isAdmin = profile?.role === 'admin';
+
+    // Build query based on user role
+    let query = supabase
       .from('games')
       .select('*')
-      .eq('id', gameId)
-      .eq('created_by', user.id)
-      .single();
+      .eq('id', gameId);
+
+    if (!isAdmin) {
+      // Regular users can only see their own games
+      query = query.eq('created_by', user.id);
+    }
+    // Admins can see all games (no additional filter)
+
+    const { data, error } = await query.single();
 
     if (error) throw error;
 

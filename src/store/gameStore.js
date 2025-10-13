@@ -354,12 +354,22 @@ export const useGameStore = create((set, get) => ({
     const { game } = get();
     if (!game) return;
 
+    console.log('[GameStore] updateGame called with updates:', updates);
+
     const updatedGame = {
       ...game,
       ...updates,
     };
 
+    console.log('[GameStore] Updated game state:', {
+      id: updatedGame.id,
+      isComplete: updatedGame.isComplete,
+      currentHole: updatedGame.currentHole
+    });
+
     set({ game: updatedGame });
     await saveCurrentGame(updatedGame);
+    
+    console.log('[GameStore] Game updated and saved to Supabase');
   },
 }));
