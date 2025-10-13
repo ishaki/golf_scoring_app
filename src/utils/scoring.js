@@ -61,12 +61,12 @@ function calculatePointsBetweenPlayers(
   if (playerNetScore === opponentNetScore) {
     if (opponentGivesStrokeToPlayer && !playerGivesStrokeToOpponent) {
       // Player receives stroke from opponent, player wins tie
-      // Points based on player's GROSS score vs par
-      return calculatePointsForWin(playerGrossDiff);
+      // Points based on player's GROSS score vs par (special rule for voor ties)
+      return calculatePointsForVoorTieWin(playerGrossDiff);
     } else if (playerGivesStrokeToOpponent && !opponentGivesStrokeToPlayer) {
       // Opponent receives stroke from player, opponent wins tie
-      // Points based on opponent's GROSS score vs par
-      return -calculatePointsForWin(opponentGrossDiff);
+      // Points based on opponent's GROSS score vs par (special rule for voor ties)
+      return -calculatePointsForVoorTieWin(opponentGrossDiff);
     }
     // Both give strokes to each other (shouldn't happen) or neither gives = true tie
     return 0;
@@ -104,6 +104,21 @@ function calculatePointsForWin(scoreDiff) {
   }
   // Par, bogey, or worse
   return 1;
+}
+
+/**
+ * Calculate points for winning on voor hole tie-break
+ * Special rule: Double bogey or worse gets 0 points on voor hole ties
+ * @param {number} scoreDiff - Difference from par
+ * @returns {number} Points won (0 for double bogey or worse, otherwise normal points)
+ */
+function calculatePointsForVoorTieWin(scoreDiff) {
+  if (scoreDiff >= 2) {
+    // Double bogey or worse - gets 0 points on voor hole ties
+    return 0;
+  }
+  // Use normal point calculation for other scores
+  return calculatePointsForWin(scoreDiff);
 }
 
 /**

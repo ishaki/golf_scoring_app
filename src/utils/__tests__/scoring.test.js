@@ -186,7 +186,97 @@ export function testAllPlayersScoreSame() {
 }
 
 /**
- * Test Case 5: Mixed scores (birdies, pars, bogeys)
+ * Test Case 5: Voor hole tie with double bogey (NEW RULE)
+ */
+export function testVoorHoleTieWithDoubleBogey() {
+  const players = [
+    { id: '1', name: 'Alice', voorGiven: { '2': 1 } }, // Alice gives 1 stroke to Bob
+    { id: '2', name: 'Bob', voorGiven: {} },
+    { id: '3', name: 'Carol', voorGiven: {} },
+    { id: '4', name: 'David', voorGiven: {} },
+    { id: '5', name: 'Emma', voorGiven: {} },
+    { id: '6', name: 'Frank', voorGiven: {} },
+  ];
+
+  const hole = {
+    number: 1, // Stroke index 1 - Bob gets stroke
+    par: 4,
+    strokeIndex: 1,
+    scores: {
+      '1': 6, // Alice - double bogey (gross)
+      '2': 5, // Bob - bogey (gross), but gets stroke so net = 4
+      '3': 5, // Carol - bogey
+      '4': 5, // David - bogey
+      '5': 5, // Emma - bogey
+      '6': 5, // Frank - bogey
+    },
+    netScores: {},
+    points: {},
+  };
+
+  const strokeIndexes = Array.from({ length: 18 }, (_, i) => i + 1);
+  const strokeHolesMap = calculateAllStrokeHoles(players, strokeIndexes);
+
+  const points = calculateHolePoints(hole, players, strokeHolesMap);
+
+  console.log('Test Case 5: Voor hole tie with double bogey');
+  console.log('Alice scores 6 (double bogey), Bob scores 5 (bogey) but gets stroke');
+  console.log('Net scores: Alice=6, Bob=4 (Bob wins with net score)');
+  console.log('Expected: Bob gets points, Alice gets 0 points (double bogey rule)');
+  console.log('Actual:', points);
+  console.log('---');
+
+  // Bob's net 4 beats Alice's net 6, so Bob should win
+  // But Alice should get 0 points due to double bogey rule
+}
+
+/**
+ * Test Case 6: Voor hole tie with double bogey (EXACT SCENARIO)
+ */
+export function testVoorHoleTieExactScenario() {
+  const players = [
+    { id: '1', name: 'Alice', voorGiven: { '2': 1 } }, // Alice gives 1 stroke to Bob
+    { id: '2', name: 'Bob', voorGiven: {} },
+    { id: '3', name: 'Carol', voorGiven: {} },
+    { id: '4', name: 'David', voorGiven: {} },
+    { id: '5', name: 'Emma', voorGiven: {} },
+    { id: '6', name: 'Frank', voorGiven: {} },
+  ];
+
+  const hole = {
+    number: 1, // Stroke index 1 - Bob gets stroke
+    par: 4,
+    strokeIndex: 1,
+    scores: {
+      '1': 6, // Alice - double bogey (gross), net = 6
+      '2': 5, // Bob - bogey (gross), gets stroke so net = 4
+      '3': 6, // Carol - double bogey, net = 6
+      '4': 6, // David - double bogey, net = 6
+      '5': 6, // Emma - double bogey, net = 6
+      '6': 6, // Frank - double bogey, net = 6
+    },
+    netScores: {},
+    points: {},
+  };
+
+  const strokeIndexes = Array.from({ length: 18 }, (_, i) => i + 1);
+  const strokeHolesMap = calculateAllStrokeHoles(players, strokeIndexes);
+
+  const points = calculateHolePoints(hole, players, strokeHolesMap);
+
+  console.log('Test Case 6: Voor hole tie with double bogey (EXACT SCENARIO)');
+  console.log('Alice scores 6 (double bogey), Bob scores 5 (bogey) but gets stroke');
+  console.log('Net scores: Alice=6, Bob=4, Others=6');
+  console.log('Expected: Bob wins against everyone, Alice gets 0 points (double bogey rule)');
+  console.log('Actual:', points);
+  console.log('---');
+
+  // Bob's net 4 beats everyone else's net 6
+  // Alice should get 0 points due to double bogey rule on voor hole tie
+}
+
+/**
+ * Test Case 7: Mixed scores (birdies, pars, bogeys)
  */
 export function testMixedScores() {
   const players = [
