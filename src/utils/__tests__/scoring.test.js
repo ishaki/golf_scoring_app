@@ -6,6 +6,22 @@
 import { calculateHolePoints, calculateGameTotals } from '../scoring';
 import { calculateAllStrokeHoles } from '../voor';
 
+// Default scoring configuration for tests
+const DEFAULT_SCORING_CONFIG = {
+  eagleOrBetter: {
+    againstLower: 4,
+  },
+  birdie: {
+    againstLower: 2,
+  },
+  par: {
+    againstLower: 1,
+  },
+  bogey: {
+    againstLower: 1,
+  },
+};
+
 /**
  * Test Case 1: Simple hole with no voor
  */
@@ -38,7 +54,7 @@ export function testSimpleHoleNoVoor() {
   const strokeIndexes = Array.from({ length: 18 }, (_, i) => i + 1);
   const strokeHolesMap = calculateAllStrokeHoles(players, strokeIndexes);
 
-  const points = calculateHolePoints(hole, players, strokeHolesMap);
+  const points = calculateHolePoints(hole, players, strokeHolesMap, strokeIndexes, DEFAULT_SCORING_CONFIG);
 
   console.log('Test Case 1: Simple hole with no voor');
   console.log('Expected: Alice +10, Bob 0, Carol 0, David -6, Emma -8, Frank 0');
@@ -86,7 +102,7 @@ export function testHoleWithVoor() {
   const strokeIndexes = Array.from({ length: 18 }, (_, i) => i + 1);
   const strokeHolesMap = calculateAllStrokeHoles(players, strokeIndexes);
 
-  const points = calculateHolePoints(hole, players, strokeHolesMap);
+  const points = calculateHolePoints(hole, players, strokeHolesMap, strokeIndexes, DEFAULT_SCORING_CONFIG);
 
   console.log('Test Case 2: Hole with voor');
   console.log('Bob gets stroke on this hole (index 1)');
@@ -131,7 +147,7 @@ export function testTieOnStrokeHole() {
   const strokeIndexes = Array.from({ length: 18 }, (_, i) => i + 1);
   const strokeHolesMap = calculateAllStrokeHoles(players, strokeIndexes);
 
-  const points = calculateHolePoints(hole, players, strokeHolesMap);
+  const points = calculateHolePoints(hole, players, strokeHolesMap, strokeIndexes, DEFAULT_SCORING_CONFIG);
 
   console.log('Test Case 3: Tie on stroke hole');
   console.log('Alice and Bob both score 4 (gross), but Bob gets stroke');
@@ -175,7 +191,7 @@ export function testAllPlayersScoreSame() {
   const strokeIndexes = Array.from({ length: 18 }, (_, i) => i + 1);
   const strokeHolesMap = calculateAllStrokeHoles(players, strokeIndexes);
 
-  const points = calculateHolePoints(hole, players, strokeHolesMap);
+  const points = calculateHolePoints(hole, players, strokeHolesMap, strokeIndexes, DEFAULT_SCORING_CONFIG);
 
   console.log('Test Case 4: All players score the same');
   console.log('Expected: All 0 points');
@@ -217,7 +233,7 @@ export function testVoorHoleTieWithDoubleBogey() {
   const strokeIndexes = Array.from({ length: 18 }, (_, i) => i + 1);
   const strokeHolesMap = calculateAllStrokeHoles(players, strokeIndexes);
 
-  const points = calculateHolePoints(hole, players, strokeHolesMap);
+  const points = calculateHolePoints(hole, players, strokeHolesMap, strokeIndexes, DEFAULT_SCORING_CONFIG);
 
   console.log('Test Case 5: Voor hole tie with double bogey');
   console.log('Alice scores 6 (double bogey), Bob scores 5 (bogey) but gets stroke');
@@ -262,7 +278,7 @@ export function testVoorHoleTieExactScenario() {
   const strokeIndexes = Array.from({ length: 18 }, (_, i) => i + 1);
   const strokeHolesMap = calculateAllStrokeHoles(players, strokeIndexes);
 
-  const points = calculateHolePoints(hole, players, strokeHolesMap);
+  const points = calculateHolePoints(hole, players, strokeHolesMap, strokeIndexes, DEFAULT_SCORING_CONFIG);
 
   console.log('Test Case 6: Voor hole tie with double bogey (EXACT SCENARIO)');
   console.log('Alice scores 6 (double bogey), Bob scores 5 (bogey) but gets stroke');
@@ -307,7 +323,7 @@ export function testMixedScores() {
   const strokeIndexes = Array.from({ length: 18 }, (_, i) => i + 1);
   const strokeHolesMap = calculateAllStrokeHoles(players, strokeIndexes);
 
-  const points = calculateHolePoints(hole, players, strokeHolesMap);
+  const points = calculateHolePoints(hole, players, strokeHolesMap, strokeIndexes, DEFAULT_SCORING_CONFIG);
 
   console.log('Test Case 5: Mixed scores');
   console.log('Alice & Bob: birdie, Carol: par, David & Emma: bogey, Frank: double');

@@ -5,6 +5,7 @@ import { calculateAllStrokeHoles } from '../utils/voor';
 import PlayerSetup from '../components/setup/PlayerSetup';
 import VoorConfiguration from '../components/setup/VoorConfiguration';
 import CourseSetup from '../components/setup/CourseSetup';
+import ScoringConfiguration from '../components/setup/ScoringConfiguration';
 
 export default function Setup() {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ export default function Setup() {
   const [playerNames, setPlayerNames] = useState([]);
   const [courseConfig, setCourseConfig] = useState(null);
   const [voorMatrix, setVoorMatrix] = useState({});
+  const [scoringConfig, setScoringConfig] = useState(null);
   const [showWarning, setShowWarning] = useState(false);
 
   useEffect(() => {
@@ -35,7 +37,12 @@ export default function Setup() {
     setStep(3);
   };
 
-  const handleStartGame = (matrix) => {
+  const handleVoorNext = (matrix) => {
+    setVoorMatrix(matrix);
+    setStep(4);
+  };
+
+  const handleStartGame = (config) => {
     // Create player objects with IDs and voor configuration
     // Matrix uses indices, need to convert to player IDs
     const players = playerNames.map((name, index) => {
@@ -43,8 +50,8 @@ export default function Setup() {
 
       // Convert matrix indices to player IDs
       const voorGiven = {};
-      if (matrix[index]) {
-        Object.entries(matrix[index]).forEach(([receiverIndex, strokes]) => {
+      if (voorMatrix[index]) {
+        Object.entries(voorMatrix[index]).forEach(([receiverIndex, strokes]) => {
           const receiverId = `player-${parseInt(receiverIndex) + 1}`;
           voorGiven[receiverId] = strokes;
         });
@@ -67,8 +74,8 @@ export default function Setup() {
       strokeHoles: strokeHolesMap[player.id] || [],
     }));
 
-    // Create game
-    createGame(playersWithStrokeHoles, courseConfig);
+    // Create game with scoring configuration
+    createGame(playersWithStrokeHoles, courseConfig, config);
 
     // Navigate to game screen
     navigate('/game');
@@ -149,7 +156,7 @@ export default function Setup() {
         {/* Progress indicator */}
         <div className="mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
-            {[1, 2, 3].map((num) => (
+            {[1, 2, 3, 4].map((num) => (
               <div key={num} className="flex items-center">
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors ${
@@ -162,7 +169,7 @@ export default function Setup() {
                 >
                   {step > num ? '✓' : num}
                 </div>
-                {num < 3 && (
+                {num < 4 && (
                   <div
                     className={`w-12 h-1 mx-1 ${
                       step > num ? 'bg-green-500' : 'bg-gray-300'
@@ -181,6 +188,9 @@ export default function Setup() {
             </span>
             <span className={step === 3 ? 'font-semibold text-primary' : ''}>
               Voor
+            </span>
+            <span className={step === 4 ? 'font-semibold text-primary' : ''}>
+              Scoring
             </span>
           </div>
         </div>
@@ -205,9 +215,17 @@ export default function Setup() {
             <VoorConfiguration
               playerNames={playerNames}
               courseConfig={courseConfig}
-              onStart={handleStartGame}
+              onNext={handleVoorNext}
               onBack={handleBack}
               initialVoor={voorMatrix}
+            />
+          )}
+
+          {step === 4 && (
+            <ScoringConfiguration
+              onNext={handleStartGame}
+              onBack={handleBack}
+              initialConfig={scoringConfig}
             />
           )}
         </div>

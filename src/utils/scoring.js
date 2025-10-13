@@ -42,6 +42,7 @@ function playerGivesStrokeToOpponent(giver, receiver, holeNumber, strokeIndexes)
  * @param {number} par - Par for the hole
  * @param {boolean} playerGivesStrokeToOpponent - Whether player gives stroke to opponent on this hole
  * @param {boolean} opponentGivesStrokeToPlayer - Whether opponent gives stroke to player on this hole
+ * @param {import('../types').ScoringConfiguration} scoringConfig - Scoring configuration
  * @returns {number} Points (positive = player wins, negative = player loses, 0 = tie)
  */
 function calculatePointsBetweenPlayers(
@@ -51,7 +52,8 @@ function calculatePointsBetweenPlayers(
   opponentGrossScore,
   par,
   playerGivesStrokeToOpponent,
-  opponentGivesStrokeToPlayer
+  opponentGivesStrokeToPlayer,
+  scoringConfig
 ) {
   // Calculate gross score differences from par (for point calculation)
   const playerGrossDiff = getScoreDiff(playerGrossScore, par);
@@ -62,11 +64,11 @@ function calculatePointsBetweenPlayers(
     if (opponentGivesStrokeToPlayer && !playerGivesStrokeToOpponent) {
       // Player receives stroke from opponent, player wins tie
       // Points based on player's GROSS score vs par (special rule for voor ties)
-      return calculatePointsForVoorTieWin(playerGrossDiff);
+      return calculatePointsForVoorTieWin(playerGrossDiff, opponentGrossDiff, scoringConfig);
     } else if (playerGivesStrokeToOpponent && !opponentGivesStrokeToPlayer) {
       // Opponent receives stroke from player, opponent wins tie
       // Points based on opponent's GROSS score vs par (special rule for voor ties)
-      return -calculatePointsForVoorTieWin(opponentGrossDiff);
+      return -calculatePointsForVoorTieWin(opponentGrossDiff, playerGrossDiff, scoringConfig);
     }
     // Both give strokes to each other (shouldn't happen) or neither gives = true tie
     return 0;
@@ -75,50 +77,65 @@ function calculatePointsBetweenPlayers(
   // Player did better (lower net score wins)
   if (playerNetScore < opponentNetScore) {
     // Points based on player's GROSS score vs par
-    return calculatePointsForWin(playerGrossDiff);
+    return calculatePointsForWin(playerGrossDiff, opponentGrossDiff, scoringConfig);
   }
 
   // Player did worse
   if (playerNetScore > opponentNetScore) {
     // Points based on opponent's GROSS score vs par
-    return -calculatePointsForWin(opponentGrossDiff);
+    return -calculatePointsForWin(opponentGrossDiff, playerGrossDiff, scoringConfig);
   }
 
   return 0;
 }
 
 /**
- * Calculate points for winning based on score vs par
- * V2.1: Updated to support eagle tier
+ * Calculate points for winning based on score vs par using configurable scoring
  * @param {number} scoreDiff - Difference from par
- * @returns {number} Points won (4 for eagle+, 2 for birdie, 1 for par/bogey/worse)
+ * @param {number} opponentScoreDiff - Opponent's difference from par
+ * @param {import('../types').ScoringConfiguration} scoringConfig - Scoring configuration
+ * @returns {number} Points won based on configuration
  */
-function calculatePointsForWin(scoreDiff) {
+function calculatePointsForWin(scoreDiff, opponentScoreDiff, scoringConfig) {
+  // Eagle or better (≤ -2)
   if (scoreDiff <= -2) {
-    // Eagle or better
-    return 4;
+    return scoringConfig.eagleOrBetter.againstLower;
   }
+  
+  // Birdie (-1)
   if (scoreDiff === -1) {
-    // Birdie
-    return 2;
+    return scoringConfig.birdie.againstLower;
   }
-  // Par, bogey, or worse
-  return 1;
+  
+  // Par (0)
+  if (scoreDiff === 0) {
+    return scoringConfig.par.againstLower;
+  }
+  
+  // Bogey (+1)
+  if (scoreDiff === 1) {
+    return scoringConfig.bogey.againstLower;
+  }
+  
+  // Double bogey or worse - no points
+  return 0;
 }
 
 /**
  * Calculate points for winning on voor hole tie-break
  * Special rule: Double bogey or worse gets 0 points on voor hole ties
  * @param {number} scoreDiff - Difference from par
+ * @param {number} opponentScoreDiff - Opponent's difference from par
+ * @param {import('../types').ScoringConfiguration} scoringConfig - Scoring configuration
  * @returns {number} Points won (0 for double bogey or worse, otherwise normal points)
  */
-function calculatePointsForVoorTieWin(scoreDiff) {
+function calculatePointsForVoorTieWin(scoreDiff, opponentScoreDiff, scoringConfig) {
   if (scoreDiff >= 2) {
     // Double bogey or worse - gets 0 points on voor hole ties
     return 0;
   }
   // Use normal point calculation for other scores
-  return calculatePointsForWin(scoreDiff);
+  return calculatePointsForWin(scoreDiff, opponentScoreDiff, scoringConfig);
 }
 
 /**
@@ -127,9 +144,10 @@ function calculatePointsForVoorTieWin(scoreDiff) {
  * @param {import('../types').Player[]} players - Array of players
  * @param {Object.<string, number[]>} strokeHolesMap - Map of playerId to stroke holes
  * @param {number[]} strokeIndexes - Stroke indexes for the course
+ * @param {import('../types').ScoringConfiguration} scoringConfig - Scoring configuration
  * @returns {Object.<string, number>} Map of playerId to points earned
  */
-export function calculateHolePoints(hole, players, strokeHolesMap, strokeIndexes) {
+export function calculateHolePoints(hole, players, strokeHolesMap, strokeIndexes, scoringConfig) {
   const points = {};
   const netScores = calculateAllNetScores(hole, players, strokeHolesMap);
 
@@ -167,7 +185,8 @@ export function calculateHolePoints(hole, players, strokeHolesMap, strokeIndexes
         opponentGrossScore,
         hole.par,
         playerGivesStroke,
-        opponentGivesStroke
+        opponentGivesStroke,
+        scoringConfig
       );
 
       playerTotalPoints += pointsVsOpponent;
@@ -213,7 +232,7 @@ export function calculateAllPoints(game, strokeHolesMap) {
   const strokeIndexes = game.holes.map(h => h.strokeIndex);
 
   const updatedHoles = game.holes.map(hole => {
-    const points = calculateHolePoints(hole, game.players, strokeHolesMap, strokeIndexes);
+    const points = calculateHolePoints(hole, game.players, strokeHolesMap, strokeIndexes, game.scoringConfig);
     const netScores = calculateAllNetScores(hole, game.players, strokeHolesMap);
 
     return {

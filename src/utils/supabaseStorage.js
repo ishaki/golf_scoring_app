@@ -57,6 +57,7 @@ export async function saveCurrentGame(game) {
         totals: game.totals,
         is_complete: game.isComplete,
         course_name: game.courseName,
+        scoring_config: game.scoringConfig,
         updated_at: new Date().toISOString()
       };
 
@@ -90,7 +91,8 @@ export async function saveCurrentGame(game) {
         totals: game.totals,
         is_complete: game.isComplete,
         course_name: game.courseName,
-        created_at: game.createdAt
+        created_at: game.createdAt,
+        scoring_config: game.scoringConfig
       };
 
       console.log('[supabaseStorage] Insert data:', {
@@ -100,9 +102,11 @@ export async function saveCurrentGame(game) {
         isComplete: game.isComplete
       });
 
-      const { error: insertError } = await supabase
+      const { data: insertedData, error: insertError } = await supabase
         .from('games')
-        .insert(insertData);
+        .insert(insertData)
+        .select('public_token')
+        .single();
 
       if (insertError) {
         console.error('[supabaseStorage] Insert error:', insertError);
@@ -110,6 +114,12 @@ export async function saveCurrentGame(game) {
       }
 
       console.log('[supabaseStorage] ✅ Game inserted successfully');
+      
+      // Update the game object with the generated public_token
+      if (insertedData && insertedData.public_token) {
+        game.public_token = insertedData.public_token;
+        console.log('[supabaseStorage] ✅ Public token generated:', insertedData.public_token);
+      }
     }
 
     return true;
@@ -180,7 +190,8 @@ export async function loadCurrentGame() {
       totals: gameData.totals,
       courseName: gameData.course_name,
       isPublic: gameData.is_public,
-      publicToken: gameData.public_token
+      public_token: gameData.public_token,
+      scoringConfig: gameData.scoring_config
     };
   } catch (error) {
     console.error('[supabaseStorage] loadCurrentGame: ❌ Error:', error);
@@ -267,7 +278,8 @@ export async function loadGameHistory() {
       totals: game.totals,
       courseName: game.course_name,
       isPublic: game.is_public,
-      publicToken: game.public_token
+      public_token: game.public_token,
+      scoringConfig: game.scoring_config
     }));
   } catch (error) {
     console.error('Error loading game history:', error);
@@ -309,7 +321,8 @@ export async function loadGameById(gameId) {
       totals: data.totals,
       courseName: data.course_name,
       isPublic: data.is_public,
-      publicToken: data.public_token
+      public_token: data.public_token,
+      scoringConfig: data.scoring_config
     };
   } catch (error) {
     console.error('Error loading game by ID:', error);

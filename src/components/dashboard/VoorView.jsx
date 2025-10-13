@@ -1,7 +1,25 @@
 import { useMemo } from 'react';
 import { calculateAllStrokeHoles } from '../../utils/voor';
 
-export default function VoorView({ players, holes }) {
+// Default scoring configuration fallback
+const DEFAULT_SCORING_CONFIG = {
+  eagleOrBetter: {
+    againstLower: 4,
+  },
+  birdie: {
+    againstLower: 2,
+  },
+  par: {
+    againstLower: 1,
+  },
+  bogey: {
+    againstLower: 1,
+  },
+};
+
+export default function VoorView({ players, holes, scoringConfig }) {
+  // Use default config if scoringConfig is null/undefined
+  const config = scoringConfig || DEFAULT_SCORING_CONFIG;
   // Calculate stroke holes map
   const strokeHolesMap = useMemo(() => {
     if (!holes || holes.length === 0) return {};
@@ -206,6 +224,82 @@ export default function VoorView({ players, holes }) {
           )}
         </div>
       </div>
+
+      {/* Point Configuration Section */}
+      {config && (
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          <div className="bg-green-600 text-white px-6 py-4">
+            <h2 className="text-2xl font-bold">Point Configuration</h2>
+            <p className="text-green-100">Points awarded when scoring better than opponents</p>
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Eagle or Better */}
+              <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-emerald-600 text-lg">🦅</span>
+                  <h3 className="font-semibold text-emerald-800">Eagle or Better</h3>
+                </div>
+                <p className="text-sm text-emerald-700 mb-2">≤ -2 vs par</p>
+                <div className="text-2xl font-bold text-emerald-600">
+                  +{config.eagleOrBetter?.againstLower || 0}
+                </div>
+                <p className="text-xs text-emerald-600">points vs lower scores</p>
+              </div>
+
+              {/* Birdie */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-green-600 text-lg">🐦</span>
+                  <h3 className="font-semibold text-green-800">Birdie</h3>
+                </div>
+                <p className="text-sm text-green-700 mb-2">-1 vs par</p>
+                <div className="text-2xl font-bold text-green-600">
+                  +{config.birdie?.againstLower || 0}
+                </div>
+                <p className="text-xs text-green-600">points vs lower scores</p>
+              </div>
+
+              {/* Par */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-blue-600 text-lg">⛳</span>
+                  <h3 className="font-semibold text-blue-800">Par</h3>
+                </div>
+                <p className="text-sm text-blue-700 mb-2">0 vs par</p>
+                <div className="text-2xl font-bold text-blue-600">
+                  +{config.par?.againstLower || 0}
+                </div>
+                <p className="text-xs text-blue-600">points vs lower scores</p>
+              </div>
+
+              {/* Bogey */}
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-orange-600 text-lg">🐽</span>
+                  <h3 className="font-semibold text-orange-800">Bogey</h3>
+                </div>
+                <p className="text-sm text-orange-700 mb-2">+1 vs par</p>
+                <div className="text-2xl font-bold text-orange-600">
+                  +{config.bogey?.againstLower || 0}
+                </div>
+                <p className="text-xs text-orange-600">points vs lower scores</p>
+              </div>
+            </div>
+
+            <div className="mt-6 bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <h3 className="font-semibold text-gray-900 mb-2">How Points Work:</h3>
+              <ul className="text-sm text-gray-700 space-y-1">
+                <li>• Points are awarded when you score better than an opponent</li>
+                <li>• The number of points depends on your gross score vs par</li>
+                <li>• Example: If you make birdie and opponent makes par, you get {config.birdie?.againstLower || 0} points</li>
+                <li>• Example: If you make eagle and opponent makes bogey, you get {config.eagleOrBetter?.againstLower || 0} points</li>
+                <li>• Total points per hole sum to zero across all players</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Legend */}
       <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">

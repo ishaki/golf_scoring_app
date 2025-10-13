@@ -47,6 +47,16 @@ export default function HoleBreakdown({ players, holes }) {
     }, 0);
   };
 
+  const calculateNineHoleTotal = (playerId, startHole, endHole) => {
+    return holes.slice(startHole, endHole).reduce((sum, hole) => {
+      if (viewMode === 'points') {
+        return sum + (hole.points?.[playerId] || 0);
+      } else {
+        return sum + (hole.scores?.[playerId] || 0);
+      }
+    }, 0);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-lg overflow-hidden">
       <div className="bg-primary text-white px-6 py-4">
@@ -87,13 +97,28 @@ export default function HoleBreakdown({ players, holes }) {
               <th className="sticky left-0 bg-gray-100 px-4 py-3 text-left font-semibold text-gray-700 z-10">
                 Player
               </th>
-              {holes.map((hole) => (
+              {holes.slice(0, 9).map((hole) => (
                 <th key={hole.number} className="px-3 py-3 text-center font-semibold text-gray-700 min-w-[50px]">
                   <div>{hole.number}</div>
                   <div className="text-xs font-normal text-gray-500">Par {hole.par}</div>
                   <div className="text-xs font-normal text-gray-400">Id {hole.strokeIndex}</div>
                 </th>
               ))}
+              <th className="bg-blue-50 px-3 py-3 text-center font-semibold text-blue-700 z-10 border-l-2 border-blue-300">
+                <div>Out</div>
+                <div className="text-xs font-normal text-blue-600">Front 9</div>
+              </th>
+              {holes.slice(9, 18).map((hole) => (
+                <th key={hole.number} className="px-3 py-3 text-center font-semibold text-gray-700 min-w-[50px]">
+                  <div>{hole.number}</div>
+                  <div className="text-xs font-normal text-gray-500">Par {hole.par}</div>
+                  <div className="text-xs font-normal text-gray-400">Id {hole.strokeIndex}</div>
+                </th>
+              ))}
+              <th className="bg-green-50 px-3 py-3 text-center font-semibold text-green-700 z-10 border-l-2 border-green-300">
+                <div>In</div>
+                <div className="text-xs font-normal text-green-600">Back 9</div>
+              </th>
               <th className="sticky right-0 bg-gray-100 px-4 py-3 text-center font-semibold text-gray-700 z-10 border-l-2 border-gray-300">
                 Total
               </th>
@@ -115,7 +140,8 @@ export default function HoleBreakdown({ players, holes }) {
                     </span>
                   )}
                 </td>
-                {holes.map((hole) => {
+                {/* Front Nine Holes */}
+                {holes.slice(0, 9).map((hole) => {
                   const value = viewMode === 'points'
                     ? (hole.points?.[player.id] || 0)
                     : (hole.scores?.[player.id] || '-');
@@ -137,6 +163,54 @@ export default function HoleBreakdown({ players, holes }) {
                     </td>
                   );
                 })}
+                
+                {/* Front Nine Subtotal */}
+                <td className="bg-blue-50 px-3 py-3 text-center font-bold text-blue-700 border-l-2 border-blue-300">
+                  <div className={`inline-block px-2 py-1 rounded font-semibold min-w-[40px] ${
+                    viewMode === 'points' 
+                      ? getPointsColor(calculateNineHoleTotal(player.id, 0, 9))
+                      : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {viewMode === 'points' && calculateNineHoleTotal(player.id, 0, 9) > 0 ? '+' : ''}
+                    {calculateNineHoleTotal(player.id, 0, 9)}
+                  </div>
+                </td>
+
+                {/* Back Nine Holes */}
+                {holes.slice(9, 18).map((hole) => {
+                  const value = viewMode === 'points'
+                    ? (hole.points?.[player.id] || 0)
+                    : (hole.scores?.[player.id] || '-');
+
+                  const colorClass = viewMode === 'points'
+                    ? getPointsColor(hole.points?.[player.id] || 0)
+                    : getScoreColor(hole.scores?.[player.id], hole.par);
+
+                  // Check if player receives voor stroke on this hole
+                  const hasStroke = strokeHolesMap[player.id]?.includes(hole.number);
+
+                  return (
+                    <td key={hole.number} className="px-3 py-3 text-center">
+                      <div className={`inline-block px-2 py-1 rounded font-semibold min-w-[40px] ${colorClass}`}>
+                        {viewMode === 'points' && value > 0 ? '+' : ''}
+                        {value}
+                        {hasStroke && <sup className="text-[0.6em] ml-0.5 font-bold">V</sup>}
+                      </div>
+                    </td>
+                  );
+                })}
+
+                {/* Back Nine Subtotal */}
+                <td className="bg-green-50 px-3 py-3 text-center font-bold text-green-700 border-l-2 border-green-300">
+                  <div className={`inline-block px-2 py-1 rounded font-semibold min-w-[40px] ${
+                    viewMode === 'points' 
+                      ? getPointsColor(calculateNineHoleTotal(player.id, 9, 18))
+                      : 'bg-green-100 text-green-800'
+                  }`}>
+                    {viewMode === 'points' && calculateNineHoleTotal(player.id, 9, 18) > 0 ? '+' : ''}
+                    {calculateNineHoleTotal(player.id, 9, 18)}
+                  </div>
+                </td>
                 <td className="sticky right-0 bg-inherit px-4 py-3 text-center font-bold text-lg z-10 border-l-2 border-gray-300">
                   <span className={viewMode === 'points' ? (calculateRowTotal(player.id) > 0 ? 'text-green-600' : calculateRowTotal(player.id) < 0 ? 'text-red-600' : 'text-gray-600') : 'text-gray-800'}>
                     {viewMode === 'points' && calculateRowTotal(player.id) > 0 ? '+' : ''}

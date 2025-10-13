@@ -17,6 +17,18 @@
  */
 
 /**
+ * @typedef {Object} ScoringConfiguration
+ * @property {Object} eagleOrBetter - Eagle or better scoring
+ * @property {number} eagleOrBetter.againstLower - Points against lower scores
+ * @property {Object} birdie - Birdie scoring
+ * @property {number} birdie.againstLower - Points against lower scores
+ * @property {Object} par - Par scoring
+ * @property {number} par.againstLower - Points against lower scores
+ * @property {Object} bogey - Bogey scoring
+ * @property {number} bogey.againstLower - Points against lower scores
+ */
+
+/**
  * @typedef {Object} Game
  * @property {string} id - Unique game identifier
  * @property {string} createdAt - ISO timestamp
@@ -25,6 +37,9 @@
  * @property {number} currentHole - Current hole number (1-18)
  * @property {boolean} isComplete - Whether game is finished
  * @property {Object.<string, number>} totals - Cumulative points (playerId: totalPoints)
+ * @property {ScoringConfiguration} scoringConfig - Scoring configuration for this game
+ * @property {string} public_token - UUID for public sharing
+ * @property {boolean} isPublic - Whether game is publicly shared
  */
 
 /**

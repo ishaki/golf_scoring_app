@@ -55,7 +55,7 @@ export default function Dashboard() {
     { id: 'leaderboard', label: 'Leaderboard', icon: '🏆' },
     { id: 'breakdown', label: 'Hole Breakdown', icon: '📊' },
     // { id: 'transactions', label: 'Transactions', icon: '💱' }, // Hidden temporarily
-    { id: 'voor', label: 'Voor', icon: '⚙️' },
+    { id: 'voor', label: 'Voor & Point', icon: '⚙️' },
     { id: 'summary', label: 'Summary', icon: '📋' },
   ];
 
@@ -105,7 +105,7 @@ export default function Dashboard() {
           )}
 
           {activeTab === 'voor' && (
-            <VoorView players={game.players} holes={game.holes} />
+            <VoorView players={game.players} holes={game.holes} scoringConfig={game.scoringConfig} />
           )}
 
           {activeTab === 'summary' && (

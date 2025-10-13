@@ -61,19 +61,19 @@ export default function VoorConfiguration({ playerNames, courseConfig, onNext, o
       return;
     }
 
-    // Use onStart if provided (new flow), otherwise onNext (backward compatibility)
-    if (onStart) {
-      onStart(voorMatrix);
-    } else if (onNext) {
+    // Use onNext if provided (new flow), otherwise onStart (backward compatibility)
+    if (onNext) {
       onNext(voorMatrix);
+    } else if (onStart) {
+      onStart(voorMatrix);
     }
   };
 
   const handleSkip = () => {
-    if (onStart) {
-      onStart({});
-    } else if (onNext) {
+    if (onNext) {
       onNext({});
+    } else if (onStart) {
+      onStart({});
     }
   };
 
@@ -303,7 +303,7 @@ export default function VoorConfiguration({ playerNames, courseConfig, onNext, o
           onClick={handleContinue}
           className="flex-1 px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-hover transition-colors"
         >
-          {onStart ? 'Start Game' : 'Next: Course Setup'}
+          {onNext ? 'Next: Scoring Configuration' : 'Start Game'}
         </button>
       </div>
     </div>

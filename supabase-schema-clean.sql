@@ -119,6 +119,7 @@ CREATE TABLE public.games (
   is_complete BOOLEAN DEFAULT FALSE,
   is_public BOOLEAN DEFAULT FALSE,
   public_token UUID DEFAULT uuid_generate_v4() UNIQUE,
+  scoring_config JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
