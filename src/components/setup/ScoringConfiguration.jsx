@@ -1,83 +1,204 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { SCORING_SYSTEMS, getDefaultConfig, getPresets, validateConfig } from '../../utils/scoring';
 
-const DEFAULT_SCORING_CONFIG = {
-  eagleOrBetter: {
-    againstLower: 4,
-  },
-  birdie: {
-    againstLower: 2,
-  },
-  par: {
-    againstLower: 1,
-  },
-  bogey: {
-    againstLower: 1,
-  },
-};
-
-export default function ScoringConfiguration({ onNext, onBack, initialConfig = DEFAULT_SCORING_CONFIG }) {
-  const [scoringConfig, setScoringConfig] = useState(initialConfig || DEFAULT_SCORING_CONFIG);
+export default function ScoringConfiguration({
+  onNext,
+  onBack,
+  initialConfig = null,
+  scoringSystem = SCORING_SYSTEMS.FIGHTER
+}) {
+  const [scoringConfig, setScoringConfig] = useState(
+    initialConfig || getDefaultConfig(scoringSystem)
+  );
   const [errors, setErrors] = useState({});
+  const [selectedPreset, setSelectedPreset] = useState(null);
 
-  const handleConfigChange = (category, value) => {
+  // Get presets for the current scoring system
+  const presets = getPresets(scoringSystem);
+
+  // Reset config when scoring system changes
+  useEffect(() => {
+    if (!initialConfig) {
+      setScoringConfig(getDefaultConfig(scoringSystem));
+      setSelectedPreset(null);
+    }
+  }, [scoringSystem, initialConfig]);
+
+  const isSingleWinner = scoringSystem === SCORING_SYSTEMS.SINGLE_WINNER ||
+                         scoringSystem === SCORING_SYSTEMS.SINGLE_WINNER_NEW;
+
+  const handleConfigChange = (category, field, value) => {
     const numValue = value === '' ? 0 : parseInt(value, 10);
-    
+
     // Validate value
     if (isNaN(numValue) || numValue < -10 || numValue > 10) {
       setErrors({
         ...errors,
-        [category]: 'Value must be between -10 and 10',
+        [`${category}_${field}`]: 'Value must be between -10 and 10',
       });
       return;
     }
 
     // Clear error
     const newErrors = { ...errors };
-    delete newErrors[category];
+    delete newErrors[`${category}_${field}`];
     setErrors(newErrors);
 
-    // Update config
-    setScoringConfig(prev => ({
-      ...prev,
-      [category]: {
-        againstLower: numValue,
-      },
-    }));
+    // Update config differently based on system type
+    if (isSingleWinner) {
+      // Single Winner: flat structure
+      setScoringConfig(prev => ({
+        ...prev,
+        [category]: numValue,
+      }));
+    } else {
+      // Fighter: nested structure
+      setScoringConfig(prev => ({
+        ...prev,
+        [category]: {
+          ...prev[category],
+          [field]: numValue,
+        },
+      }));
+    }
+
+    setSelectedPreset(null); // Clear preset selection when manually editing
   };
 
-  const getConfigValue = (category) => {
-    return scoringConfig[category]?.againstLower || 0;
+  const handlePresetSelect = (presetKey) => {
+    const preset = presets[presetKey];
+    if (preset) {
+      setScoringConfig(preset.config);
+      setSelectedPreset(presetKey);
+      setErrors({});
+    }
   };
 
   const handleContinue = () => {
+    // Validate configuration
+    const validation = validateConfig(scoringSystem, scoringConfig);
+
+    if (!validation.isValid) {
+      setErrors({ general: validation.errors.join(', ') });
+      return;
+    }
+
     if (Object.keys(errors).length > 0) {
       return;
     }
+
     onNext(scoringConfig);
   };
 
   const handleReset = () => {
-    setScoringConfig(DEFAULT_SCORING_CONFIG);
+    setScoringConfig(getDefaultConfig(scoringSystem));
+    setSelectedPreset(null);
     setErrors({});
   };
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Scoring Configuration</h2>
-        <p className="text-gray-600">
-          Configure point values for different score combinations. Points are awarded based on gross score vs par.
-        </p>
+  // Render Single Winner Config (simple, flat structure)
+  const renderSingleWinnerConfig = () => (
+    <>
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <span className="text-green-600">🦅</span>
+          Eagle or Better (≤ -2 vs par)
+        </h3>
+        <div className="flex items-center gap-4">
+          <label className="flex-1 text-sm text-gray-700">Points for winning:</label>
+          <input
+            type="number"
+            min="-10"
+            max="10"
+            value={scoringConfig.eagle || 0}
+            onChange={(e) => handleConfigChange('eagle', null, e.target.value)}
+            className="w-20 px-3 py-2 border rounded-lg text-center focus:outline-none focus:ring-2 border-gray-300 focus:ring-primary"
+          />
+          <span className="text-sm text-gray-500 w-16">points</span>
+        </div>
       </div>
 
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <p className="text-sm text-blue-800">
-          <strong>How it works:</strong> Points are awarded when a player scores better than their opponent.
-          For example, if Player A makes birdie and Player B makes par, Player A gets the configured points for birdie vs lower score.
-        </p>
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <span className="text-blue-600">🐦</span>
+          Birdie (-1 vs par)
+        </h3>
+        <div className="flex items-center gap-4">
+          <label className="flex-1 text-sm text-gray-700">Points for winning:</label>
+          <input
+            type="number"
+            min="-10"
+            max="10"
+            value={scoringConfig.birdie || 0}
+            onChange={(e) => handleConfigChange('birdie', null, e.target.value)}
+            className="w-20 px-3 py-2 border rounded-lg text-center focus:outline-none focus:ring-2 border-gray-300 focus:ring-primary"
+          />
+          <span className="text-sm text-gray-500 w-16">points</span>
+        </div>
       </div>
 
-      {/* Eagle or Better Configuration */}
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <span className="text-gray-600">⛳</span>
+          Par (0 vs par)
+        </h3>
+        <div className="flex items-center gap-4">
+          <label className="flex-1 text-sm text-gray-700">Points for winning:</label>
+          <input
+            type="number"
+            min="-10"
+            max="10"
+            value={scoringConfig.par || 0}
+            onChange={(e) => handleConfigChange('par', null, e.target.value)}
+            className="w-20 px-3 py-2 border rounded-lg text-center focus:outline-none focus:ring-2 border-gray-300 focus:ring-primary"
+          />
+          <span className="text-sm text-gray-500 w-16">points</span>
+        </div>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <span className="text-orange-600">🐽</span>
+          Bogey (+1 vs par)
+        </h3>
+        <div className="flex items-center gap-4">
+          <label className="flex-1 text-sm text-gray-700">Points for winning:</label>
+          <input
+            type="number"
+            min="-10"
+            max="10"
+            value={scoringConfig.bogey || 0}
+            onChange={(e) => handleConfigChange('bogey', null, e.target.value)}
+            className="w-20 px-3 py-2 border rounded-lg text-center focus:outline-none focus:ring-2 border-gray-300 focus:ring-primary"
+          />
+          <span className="text-sm text-gray-500 w-16">points</span>
+        </div>
+      </div>
+
+      <div className="bg-white border border-gray-200 rounded-lg p-4">
+        <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+          <span className="text-red-600">⚠️</span>
+          Double Bogey or Worse (≥ +2 vs par)
+        </h3>
+        <div className="flex items-center gap-4">
+          <label className="flex-1 text-sm text-gray-700">Points for winning:</label>
+          <input
+            type="number"
+            min="-10"
+            max="10"
+            value={scoringConfig.doubleBogeyOrWorse || 0}
+            onChange={(e) => handleConfigChange('doubleBogeyOrWorse', null, e.target.value)}
+            className="w-20 px-3 py-2 border rounded-lg text-center focus:outline-none focus:ring-2 border-gray-300 focus:ring-primary"
+          />
+          <span className="text-sm text-gray-500 w-16">points</span>
+        </div>
+      </div>
+    </>
+  );
+
+  // Render Fighter Config (complex, nested structure)
+  const renderFighterConfig = () => (
+    <>
       <div className="bg-white border border-gray-200 rounded-lg p-4">
         <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
           <span className="text-green-600">🦅</span>
@@ -85,27 +206,20 @@ export default function ScoringConfiguration({ onNext, onBack, initialConfig = D
         </h3>
         <div className="space-y-2">
           <div className="flex items-center gap-4">
-            <label className="flex-1 text-sm text-gray-700">
-              Against lower scores:
-            </label>
+            <label className="flex-1 text-sm text-gray-700">Against lower scores:</label>
             <input
               type="number"
               min="-10"
               max="10"
-              value={getConfigValue('eagleOrBetter')}
-              onChange={(e) => handleConfigChange('eagleOrBetter', e.target.value)}
-              className={`w-20 px-3 py-2 border rounded-lg text-center focus:outline-none focus:ring-2 ${
-                errors['eagleOrBetter']
-                  ? 'border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 focus:ring-primary'
-              }`}
+              value={scoringConfig.eagleOrBetter?.againstLower || 0}
+              onChange={(e) => handleConfigChange('eagleOrBetter', 'againstLower', e.target.value)}
+              className="w-20 px-3 py-2 border rounded-lg text-center focus:outline-none focus:ring-2 border-gray-300 focus:ring-primary"
             />
             <span className="text-sm text-gray-500 w-16">points</span>
           </div>
         </div>
       </div>
 
-      {/* Birdie Configuration */}
       <div className="bg-white border border-gray-200 rounded-lg p-4">
         <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
           <span className="text-blue-600">🐦</span>
@@ -113,27 +227,20 @@ export default function ScoringConfiguration({ onNext, onBack, initialConfig = D
         </h3>
         <div className="space-y-2">
           <div className="flex items-center gap-4">
-            <label className="flex-1 text-sm text-gray-700">
-              Against lower scores:
-            </label>
+            <label className="flex-1 text-sm text-gray-700">Against lower scores:</label>
             <input
               type="number"
               min="-10"
               max="10"
-              value={getConfigValue('birdie')}
-              onChange={(e) => handleConfigChange('birdie', e.target.value)}
-              className={`w-20 px-3 py-2 border rounded-lg text-center focus:outline-none focus:ring-2 ${
-                errors['birdie']
-                  ? 'border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 focus:ring-primary'
-              }`}
+              value={scoringConfig.birdie?.againstLower || 0}
+              onChange={(e) => handleConfigChange('birdie', 'againstLower', e.target.value)}
+              className="w-20 px-3 py-2 border rounded-lg text-center focus:outline-none focus:ring-2 border-gray-300 focus:ring-primary"
             />
             <span className="text-sm text-gray-500 w-16">points</span>
           </div>
         </div>
       </div>
 
-      {/* Par Configuration */}
       <div className="bg-white border border-gray-200 rounded-lg p-4">
         <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
           <span className="text-gray-600">⛳</span>
@@ -141,27 +248,20 @@ export default function ScoringConfiguration({ onNext, onBack, initialConfig = D
         </h3>
         <div className="space-y-2">
           <div className="flex items-center gap-4">
-            <label className="flex-1 text-sm text-gray-700">
-              Against lower scores:
-            </label>
+            <label className="flex-1 text-sm text-gray-700">Against lower scores:</label>
             <input
               type="number"
               min="-10"
               max="10"
-              value={getConfigValue('par')}
-              onChange={(e) => handleConfigChange('par', e.target.value)}
-              className={`w-20 px-3 py-2 border rounded-lg text-center focus:outline-none focus:ring-2 ${
-                errors['par']
-                  ? 'border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 focus:ring-primary'
-              }`}
+              value={scoringConfig.par?.againstLower || 0}
+              onChange={(e) => handleConfigChange('par', 'againstLower', e.target.value)}
+              className="w-20 px-3 py-2 border rounded-lg text-center focus:outline-none focus:ring-2 border-gray-300 focus:ring-primary"
             />
             <span className="text-sm text-gray-500 w-16">points</span>
           </div>
         </div>
       </div>
 
-      {/* Bogey Configuration */}
       <div className="bg-white border border-gray-200 rounded-lg p-4">
         <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
           <span className="text-orange-600">🐽</span>
@@ -169,36 +269,75 @@ export default function ScoringConfiguration({ onNext, onBack, initialConfig = D
         </h3>
         <div className="space-y-2">
           <div className="flex items-center gap-4">
-            <label className="flex-1 text-sm text-gray-700">
-              Against lower scores:
-            </label>
+            <label className="flex-1 text-sm text-gray-700">Against lower scores:</label>
             <input
               type="number"
               min="-10"
               max="10"
-              value={getConfigValue('bogey')}
-              onChange={(e) => handleConfigChange('bogey', e.target.value)}
-              className={`w-20 px-3 py-2 border rounded-lg text-center focus:outline-none focus:ring-2 ${
-                errors['bogey']
-                  ? 'border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 focus:ring-primary'
-              }`}
+              value={scoringConfig.bogey?.againstLower || 0}
+              onChange={(e) => handleConfigChange('bogey', 'againstLower', e.target.value)}
+              className="w-20 px-3 py-2 border rounded-lg text-center focus:outline-none focus:ring-2 border-gray-300 focus:ring-primary"
             />
             <span className="text-sm text-gray-500 w-16">points</span>
           </div>
         </div>
       </div>
+    </>
+  );
 
-      {/* Summary */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h3 className="font-semibold text-gray-800 mb-3">Configuration Summary</h3>
-        <div className="text-sm text-gray-600 space-y-1">
-          <p><strong>Eagle or better:</strong> {getConfigValue('eagleOrBetter')} points against lower scores</p>
-          <p><strong>Birdie:</strong> {getConfigValue('birdie')} points against lower scores</p>
-          <p><strong>Par:</strong> {getConfigValue('par')} points against lower scores</p>
-          <p><strong>Bogey:</strong> {getConfigValue('bogey')} points against lower scores</p>
-        </div>
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-gray-800 mb-2">Scoring Configuration</h2>
+        <p className="text-gray-600">
+          {isSingleWinner
+            ? "Configure points awarded when a player wins a hole. Only the player with the lowest score wins points."
+            : "Configure point values for different score combinations. Points are awarded based on head-to-head comparisons."
+          }
+        </p>
       </div>
+
+      {/* Presets Section */}
+      {Object.keys(presets).length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 className="font-semibold text-blue-900 mb-3">Quick Presets</h3>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(presets).map(([key, preset]) => (
+              <button
+                key={key}
+                onClick={() => handlePresetSelect(key)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  selectedPreset === key
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-blue-700 border border-blue-300 hover:bg-blue-100'
+                }`}
+                title={preset.description}
+              >
+                {preset.name}
+              </button>
+            ))}
+          </div>
+          {selectedPreset && (
+            <p className="text-sm text-blue-700 mt-2">
+              {presets[selectedPreset].description}
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Info Box */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <p className="text-sm text-blue-800">
+          <strong>How it works:</strong>{' '}
+          {isSingleWinner
+            ? "On each hole, only the player with the lowest net score wins points. Points are based on the winner's gross score vs par. If players tie for lowest score, no one gets points."
+            : "Players compare scores head-to-head. Points are awarded when a player scores better than their opponent, based on the winner's gross score vs par."
+          }
+        </p>
+      </div>
+
+      {/* Configuration Inputs */}
+      {isSingleWinner ? renderSingleWinnerConfig() : renderFighterConfig()}
 
       {/* Error messages */}
       {Object.keys(errors).length > 0 && (

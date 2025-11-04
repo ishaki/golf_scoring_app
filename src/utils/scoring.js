@@ -1,33 +1,40 @@
 /**
  * Scoring System Factory - Exports the appropriate scoring system based on game configuration
+ *
+ * LEGACY FILE: This file maintains backward compatibility.
+ * New code should import from './scoring/index.js' instead.
  */
 
-import * as FighterScoring from './FighterScoring.js';
-import * as SingleWinnerScoring from './SingleWinnerScoring.js';
+import {
+  getScoringSystem as getScoring,
+  SCORING_SYSTEMS as NEW_SCORING_SYSTEMS,
+} from './scoring/index.js';
 
 /**
  * Available scoring systems
+ * Note: Maintaining old constants for backward compatibility
  */
 export const SCORING_SYSTEMS = {
   FIGHTER: 'fighter',
-  SINGLE_WINNER: 'single_winner'
+  SINGLE_WINNER: 'single_winner', // Legacy format
+  SINGLE_WINNER_NEW: 'single-winner', // New format
 };
 
 /**
  * Get the appropriate scoring system based on game configuration
  * @param {import('../types').Game} game - Game object
- * @returns {Object} Scoring system functions
+ * @returns {Object} Scoring system instance
  */
 export function getScoringSystem(game) {
-  const scoringSystem = game.scoringSystem || SCORING_SYSTEMS.FIGHTER;
-  
-  switch (scoringSystem) {
-    case SCORING_SYSTEMS.SINGLE_WINNER:
-      return SingleWinnerScoring;
-    case SCORING_SYSTEMS.FIGHTER:
-    default:
-      return FighterScoring;
+  // Normalize legacy scoring system names to new format
+  const legacySystem = game?.scoringSystem || SCORING_SYSTEMS.FIGHTER;
+
+  let normalizedSystem = legacySystem;
+  if (legacySystem === 'single_winner') {
+    normalizedSystem = 'single-winner';
   }
+
+  return getScoring({ ...game, scoringSystem: normalizedSystem });
 }
 
 /**
@@ -107,6 +114,10 @@ export function getAllPlayerStats(game, strokeHolesMap) {
  * @returns {Object.<string, number>} Map of playerId to total points
  */
 export function calculateGameTotals(holes, players) {
-  // This function is system-agnostic, so we can use FighterScoring's implementation
-  return FighterScoring.calculateGameTotals(holes, players);
+  // This function is system-agnostic, use base implementation
+  const { fighterScoring } = require('./scoring/systems/FighterScoring.js');
+  return fighterScoring.calculateGameTotals(holes, players);
 }
+
+// Re-export new architecture constants and functions for convenience
+export { getDefaultConfig, validateConfig, getPresets, getConfigFields, getAvailableSystems } from './scoring/index.js';
